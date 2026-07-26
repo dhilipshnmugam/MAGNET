@@ -1,0 +1,91 @@
+import api from './api';
+
+export { default as api, getApiError } from './api';
+export { authService } from './authService';
+export { postService } from './postService';
+export { messageService } from './messageService';
+export { channelService } from './channelService';
+export { leaderboardService } from './leaderboardService';
+
+export const announcementService = {
+  create: (data: any) => api.post('/announcements', data),
+  list: (params?: { page?: number; page_size?: number }) => api.get('/announcements', { params }),
+  getById: (id: string) => api.get(`/announcements/${id}`),
+  delete: (id: string) => api.delete(`/announcements/${id}`),
+};
+
+export const eventService = {
+  create: (data: any) => api.post('/events', data),
+  list: (params?: { event_type?: string; page?: number; page_size?: number }) => api.get('/events', { params }),
+  getById: (id: string) => api.get(`/events/${id}`),
+  update: (id: string, data: any) => api.put(`/events/${id}`, data),
+  delete: (id: string) => api.delete(`/events/${id}`),
+  rsvp: (id: string, data: { status: string }) => api.post(`/events/${id}/rsvp`, data),
+  getRsvps: (id: string) => api.get(`/events/${id}/rsvps`),
+};
+
+export const notificationService = {
+  list: (params?: { page?: number; page_size?: number; unread_only?: boolean; type?: string }) => api.get('/notifications', { params }),
+  getUnreadCount: () => api.get('/notifications/unread-count'),
+  markRead: (id: string) => api.put(`/notifications/${id}/read`),
+  markAllRead: () => api.put('/notifications/read-all'),
+  registerFcm: (token: string) => api.post('/notifications/fcm-token', { token }),
+  removeFcm: (token: string) => api.delete('/notifications/fcm-token', { data: { token } }),
+  getPrefs: () => api.get('/notifications/preferences'),
+  updatePrefs: (data: any) => api.put('/notifications/preferences', data),
+};
+
+export const searchService = {
+  search: (q: string, limit?: number) => api.get('/search', { params: { q, limit } }),
+};
+
+export const uploadService = {
+  image: (file: File, folder?: string) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (folder) formData.append('folder', folder);
+    return api.post('/upload/image', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+  },
+};
+
+export const adminService = {
+  dashboard: () => api.get('/admin/dashboard'),
+  listUsers: (params?: any) => api.get('/admin/users', { params }),
+  changeRole: (userId: string, role: string) => api.put(`/admin/users/${userId}/role`, { role }),
+  changeStatus: (userId: string, isActive: boolean) => api.put(`/admin/users/${userId}/status`, { is_active: isActive }),
+  deleteUser: (userId: string) => api.delete(`/admin/users/${userId}`),
+  listChannels: (params?: any) => api.get('/admin/channels', { params }),
+  listApprovals: (params?: any) => api.get('/admin/approvals', { params }),
+  reviewApproval: (requestId: string, data: { status: string; review_note?: string }) =>
+    api.put(`/admin/approvals/${requestId}`, data),
+};
+
+export const departmentService = {
+  list: () => api.get('/users/departments'),
+  getById: (id: string) => api.get(`/users/departments/${id}`),
+  create: (data: any) => api.post('/users/departments', data),
+  update: (id: string, data: any) => api.put(`/users/departments/${id}`, data),
+  delete: (id: string) => api.delete(`/users/departments/${id}`),
+};
+
+export const clubManagementService = {
+  list: (params?: { search?: string; domain?: string; status?: string; page?: number; page_size?: number }) =>
+    api.get('/clubs', { params }),
+  getById: (id: string) => api.get(`/clubs/${id}`),
+  create: (data: any) => api.post('/clubs', data),
+  update: (id: string, data: any) => api.put(`/clubs/${id}`, data),
+  toggleStatus: (id: string) => api.put(`/clubs/${id}/status`),
+  delete: (id: string) => api.delete(`/clubs/${id}`),
+  assignAdmin: (id: string, userId: string) => api.post(`/clubs/${id}/assign-admin`, { user_id: userId }),
+  removeAdmin: (id: string) => api.delete(`/clubs/${id}/remove-admin`),
+  getStats: () => api.get('/clubs/stats/overview'),
+};
+
+export const userService = {
+  getMe: () => api.get('/users/me'),
+  updateMe: (data: any) => api.put('/users/me', data),
+  updateStudent: (data: any) => api.put('/users/me/student', data),
+  updateHod: (data: any) => api.put('/users/me/hod', data),
+  list: (params?: any) => api.get('/users', { params }),
+  getById: (id: string) => api.get(`/users/${id}`),
+};

@@ -1,0 +1,187 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-gray-200 dark:border-gray-700;
+  }
+  body {
+    @apply bg-gray-50 text-gray-900 dark:bg-black dark:text-gray-100;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed;
+    background-color: #0ea5e9;
+  }
+  .btn-primary:hover {
+    background-color: #0284c7;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition-all hover:bg-gray-50 active:scale-[0.98] dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700;
+  }
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-red-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-red-600 active:scale-[0.98];
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-gray-700 transition-all hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800;
+  }
+  .card {
+    @apply rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900;
+  }
+  .card-hover {
+    @apply rounded-2xl border border-gray-200 bg-white shadow-sm transition-all duration-300 hover:shadow-md dark:border-gray-800 dark:bg-gray-900;
+  }
+  .card-hover:hover {
+    border-color: #bae6fd;
+  }
+  .dark .card-hover:hover {
+    border-color: #075985;
+  }
+  .input {
+    @apply w-full rounded-xl border border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-all focus:outline-none focus:ring-2 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500;
+  }
+  .input:focus {
+    border-color: #38bdf8;
+    --tw-ring-color: #e0f2fe;
+  }
+  .dark .input:focus {
+    --tw-ring-color: #0c4a6e;
+  }
+  .avatar {
+    @apply relative inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-gray-200 text-gray-600 font-semibold;
+  }
+  .avatar-lg {
+    @apply h-16 w-16 text-lg;
+  }
+  .badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+  .sidebar-link {
+    @apply flex items-center gap-4 rounded-xl px-3 py-3 text-sm font-normal text-gray-700 transition-all hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800;
+  }
+  .sidebar-link-active {
+    @apply font-bold text-gray-900 dark:text-white;
+  }
+  .glass {
+    @apply bg-white/70 backdrop-blur-xl dark:bg-gray-900/70;
+  }
+  .glass-strong {
+    @apply bg-white/90 backdrop-blur-2xl dark:bg-gray-900/90;
+  }
+  .glass-card {
+    @apply rounded-2xl border border-white/20 bg-white/60 shadow-lg backdrop-blur-xl dark:border-gray-700/30 dark:bg-gray-900/60;
+  }
+  .line-clamp-4 {
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Post type badges */
+  .badge-achievement {
+    @apply bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800;
+  }
+  .badge-event {
+    @apply bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800;
+  }
+  .badge-resource {
+    @apply bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800;
+  }
+  .badge-collaboration {
+    @apply bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800;
+  }
+  .badge-club {
+    @apply bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-900/30 dark:text-rose-300 dark:border-rose-800;
+  }
+  .badge-general {
+    @apply bg-gray-50 text-gray-700 border border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700;
+  }
+  .badge-internship {
+    @apply bg-cyan-50 text-cyan-700 border border-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-300 dark:border-cyan-800;
+  }
+  .badge-placement {
+    @apply bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800;
+  }
+
+  /* Post type gradient accents */
+  .post-accent-achievement {
+    @apply bg-gradient-to-r from-amber-500 to-orange-500;
+  }
+  .post-accent-event {
+    @apply bg-gradient-to-r from-purple-500 to-pink-500;
+  }
+  .post-accent-resource {
+    @apply bg-gradient-to-r from-emerald-500 to-teal-500;
+  }
+  .post-accent-collaboration {
+    @apply bg-gradient-to-r from-blue-500 to-indigo-500;
+  }
+
+  /* Achievement score ring */
+  .score-ring {
+    @apply relative inline-flex items-center justify-center;
+  }
+  .score-ring svg {
+    @apply -rotate-90;
+  }
+  .score-ring-value {
+    @apply absolute text-sm font-bold;
+  }
+
+  /* Hashtag styling */
+  .hashtag {
+    color: #0284c7;
+    @apply font-medium cursor-pointer transition-colors;
+  }
+  .hashtag:hover {
+    color: #0369a1;
+  }
+  :root .dark .hashtag {
+    color: #38bdf8;
+  }
+  .dark .hashtag:hover {
+    color: #7dd3fc;
+  }
+
+  /* Media gallery grid */
+  .media-grid-1 {
+    @apply grid grid-cols-1;
+  }
+  .media-grid-2 {
+    @apply grid grid-cols-2 gap-1;
+  }
+  .media-grid-3 {
+    @apply grid grid-cols-2 gap-1;
+    grid-template-rows: 1fr 1fr;
+  }
+  .media-grid-3 > :first-child {
+    @apply row-span-2;
+  }
+
+  /* Skeleton loading */
+  .skeleton {
+    @apply animate-shimmer rounded-lg bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 bg-[length:200%_100%] dark:from-gray-700 dark:via-gray-600 dark:to-gray-700;
+  }
+
+  /* Counters animation */
+  .count-enter {
+    @apply animate-counter;
+  }
+
+  /* Floating label */
+  .floating-input:focus ~ .floating-label,
+  .floating-input:not(:placeholder-shown) ~ .floating-label {
+    @apply -translate-y-6 text-xs;
+    color: #0ea5e9;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}

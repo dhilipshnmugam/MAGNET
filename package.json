@@ -1,0 +1,14 @@
+{
+  "name": "magnet-social-media",
+  "version": "1.0.0",
+  "description": "Root runner for Magnet social media application",
+  "scripts": {
+    "install:frontend": "npm install --prefix magnet/frontend",
+    "dev:frontend": "npm run dev --prefix magnet/frontend",
+    "dev:backend": "cd magnet/backend && venv\\Scripts\\python.exe run.py",
+    "dev": "concurrently \"npm:dev:frontend\" \"npm:dev:backend\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

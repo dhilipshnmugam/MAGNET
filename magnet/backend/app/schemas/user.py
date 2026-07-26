@@ -1,0 +1,148 @@
+from pydantic import BaseModel, EmailStr, Field
+from typing import Optional
+from uuid import UUID
+from datetime import datetime
+
+ROLES_PATTERN = r"^(student|department_admin|super_admin|club_admin|principal)$"
+
+
+class UserBase(BaseModel):
+    email: EmailStr
+    full_name: str = Field(..., min_length=1, max_length=150)
+    role: str = Field(default="student", pattern=ROLES_PATTERN)
+    bio: Optional[str] = Field(None, max_length=500)
+    avatar_url: Optional[str] = None
+    department_id: Optional[UUID] = None
+
+
+class UserRegister(BaseModel):
+    email: EmailStr
+    password: str = Field(..., min_length=8, max_length=128)
+    full_name: str = Field(..., min_length=1, max_length=150)
+    department_id: Optional[UUID] = None
+    college_id: Optional[str] = Field(None, max_length=50)
+    year_of_study: Optional[int] = Field(None, ge=1, le=5)
+    semester: Optional[int] = Field(None, ge=1, le=10)
+    section: Optional[str] = Field(None, max_length=10)
+    phone: Optional[str] = Field(None, max_length=15)
+    admission_year: Optional[int] = None
+
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class UserUpdate(BaseModel):
+    full_name: Optional[str] = Field(None, min_length=1, max_length=150)
+    bio: Optional[str] = Field(None, max_length=500)
+    avatar_url: Optional[str] = None
+    department_id: Optional[UUID] = None
+
+
+class StudentProfileUpdate(BaseModel):
+    roll_number: Optional[str] = Field(None, max_length=30)
+    year_of_study: Optional[int] = Field(None, ge=1, le=5)
+    semester: Optional[int] = Field(None, ge=1, le=10)
+    section: Optional[str] = Field(None, max_length=10)
+    phone: Optional[str] = Field(None, max_length=15)
+    graduation_year: Optional[int] = None
+
+
+class DepartmentAdminProfileUpdate(BaseModel):
+    designation: Optional[str] = Field(None, max_length=100)
+    qualification: Optional[str] = Field(None, max_length=255)
+    specialization: Optional[str] = Field(None, max_length=255)
+    office_room: Optional[str] = Field(None, max_length=50)
+    phone: Optional[str] = Field(None, max_length=15)
+
+
+HodProfileUpdate = DepartmentAdminProfileUpdate
+
+
+class PasswordReset(BaseModel):
+    token: str
+    new_password: str = Field(..., min_length=8, max_length=128)
+
+
+class ForgotPassword(BaseModel):
+    email: EmailStr
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
+
+
+class UserOut(BaseModel):
+    id: UUID
+    email: str
+    full_name: str
+    role: str
+    avatar_url: Optional[str] = None
+    bio: Optional[str] = None
+    department_id: Optional[UUID] = None
+    is_verified: bool
+    is_active: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class UserDetailOut(UserOut):
+    last_login_at: Optional[datetime] = None
+    department_name: Optional[str] = None
+
+
+class StudentOut(BaseModel):
+    id: UUID
+    user_id: UUID
+    college_id: str
+    roll_number: Optional[str] = None
+    year_of_study: Optional[int] = None
+    semester: Optional[int] = None
+    section: Optional[str] = None
+    phone: Optional[str] = None
+    admission_year: Optional[int] = None
+    graduation_year: Optional[int] = None
+
+    class Config:
+        from_attributes = True
+
+
+class HodOut(BaseModel):
+    id: UUID
+    user_id: UUID
+    employee_id: str
+    designation: Optional[str] = None
+    qualification: Optional[str] = None
+    specialization: Optional[str] = None
+    join_date: Optional[datetime] = None
+    office_room: Optional[str] = None
+    phone: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class UserWithProfile(BaseModel):
+    user: UserOut
+    student: Optional[StudentOut] = None
+    hod: Optional[HodOut] = None
+
+    class Config:
+        from_attributes = True
+
+
+class RoleUpdate(BaseModel):
+    role: str = Field(..., pattern=ROLES_PATTERN)
+
+
+class AccountStatusUpdate(BaseModel):
+    is_active: bool
