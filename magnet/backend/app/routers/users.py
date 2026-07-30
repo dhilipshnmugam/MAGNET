@@ -1,14 +1,14 @@
 from uuid import UUID
-from fastapi import APIRouter, Depends, Query, UploadFile, File
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.dependencies import get_db, get_current_user, require_super_admin, require_student, require_department_admin
+from app.dependencies import get_db, get_current_user, require_student, require_department_admin
 from app.models.user import User
 from app.schemas.user import (
     UserOut, UserDetailOut, UserUpdate, StudentProfileUpdate,
-    HodProfileUpdate, StudentOut, HodOut, RoleUpdate, AccountStatusUpdate, UserWithProfile
+    HodProfileUpdate, StudentOut, HodOut, ProfileView
 )
 from app.schemas.common import ResponseModel, PaginatedResponse
-from app.services import auth_service, user_service, upload_service
+from app.services import auth_service, user_service
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -16,6 +16,7 @@ router = APIRouter(prefix="/users", tags=["Users"])
 @router.get("/me", response_model=ResponseModel)
 async def get_my_profile(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     user = await auth_service.get_user_profile(db, current_user.id)
+    from app.schemas.user import UserWithProfile
     data = UserWithProfile(
         user=UserOut.model_validate(user),
         student=StudentOut.model_validate(user.student_profile) if user.student_profile else None,
@@ -62,7 +63,7 @@ async def list_users(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    users, total = await auth_service.list_users(db, search, department_id, role, page, page_size)
+    users, total = await user_service.search_users(db, search, department_id, role, page, page_size)
     return PaginatedResponse(
         data=[UserOut.model_validate(u).model_dump() for u in users],
         total=total, page=page, page_size=page_size,
@@ -76,8 +77,80 @@ async def list_departments(db: AsyncSession = Depends(get_db)):
     from sqlalchemy import select
     result = await db.execute(select(Department).where(Department.is_active == True).order_by(Department.name))
     departments = result.scalars().all()
-    from app.schemas.common import ResponseModel as RM
-    return RM(data=[{"id": str(d.id), "name": d.name, "code": d.code} for d in departments])
+    return ResponseModel(data=[{"id": str(d.id), "name": d.name, "code": d.code} for d in departments])
+
+
+@router.get("/{user_id}/profile", response_model=ResponseModel)
+async def get_user_profile(
+    user_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    data = await user_service.get_user_profile(db, user_id, current_user.id)
+    user = data["user"]
+    profile_data = ProfileView(
+        user=UserOut.model_validate(user),
+        student=StudentOut.model_validate(user.student_profile) if user.student_profile else None,
+        hod=HodOut.model_validate(user.hod_profile) if user.hod_profile else None,
+        follower_count=data["follower_count"],
+        following_count=data["following_count"],
+        post_count=data["post_count"],
+        is_following=data["is_following"],
+        is_self=data["is_self"],
+    )
+    return ResponseModel(data=profile_data.model_dump())
+
+
+@router.post("/{user_id}/follow", response_model=ResponseModel)
+async def follow_user(
+    user_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    await user_service.follow_user(db, current_user.id, user_id)
+    return ResponseModel(message="Now following")
+
+
+@router.delete("/{user_id}/follow", response_model=ResponseModel)
+async def unfollow_user(
+    user_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    await user_service.unfollow_user(db, current_user.id, user_id)
+    return ResponseModel(message="Unfollowed")
+
+
+@router.get("/{user_id}/followers", response_model=PaginatedResponse)
+async def get_followers(
+    user_id: UUID,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    users, total = await user_service.get_followers(db, user_id, page, page_size)
+    return PaginatedResponse(
+        data=[UserOut.model_validate(u).model_dump() for u in users],
+        total=total, page=page, page_size=page_size,
+        has_next=(page * page_size) < total,
+    )
+
+
+@router.get("/{user_id}/following", response_model=PaginatedResponse)
+async def get_following(
+    user_id: UUID,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    users, total = await user_service.get_following(db, user_id, page, page_size)
+    return PaginatedResponse(
+        data=[UserOut.model_validate(u).model_dump() for u in users],
+        total=total, page=page, page_size=page_size,
+        has_next=(page * page_size) < total,
+    )
 
 
 @router.get("/{user_id}", response_model=ResponseModel)

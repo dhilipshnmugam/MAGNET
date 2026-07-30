@@ -1,6 +1,6 @@
-from app.models.user import User, Student, Hod
+from app.models.user import User, Student, Hod, UserFollow
 from app.models.department import Department
-from app.models.club import Club, ClubMember
+from app.models.club import Club, ClubMember, ClubJoinRequest, ClubEvent, ClubGallery, ClubAchievement
 from app.models.post import Post, PostMedia, PostImage, Like, Bookmark, PostShare, Hashtag, PostHashtag
 from app.models.comment import Comment
 from app.models.channel import Channel, ChannelMember, ChannelMessage
@@ -13,9 +13,9 @@ from app.models.approval import ApprovalRequest
 from app.models.activity_log import ActivityLog
 
 __all__ = [
-    "User", "Student", "Hod",
+    "User", "Student", "Hod", "UserFollow",
     "Department",
-    "Club", "ClubMember",
+    "Club", "ClubMember", "ClubJoinRequest", "ClubEvent", "ClubGallery", "ClubAchievement",
     "Post", "PostMedia", "PostImage", "Like", "Bookmark", "PostShare", "Hashtag", "PostHashtag",
     "Comment",
     "Channel", "ChannelMember", "ChannelMessage",

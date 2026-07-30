@@ -49,7 +49,7 @@ export default function AdminAnalyticsPage() {
         {[
           { label: 'Total Users', value: stats.total_users, icon: <Users className="h-5 w-5" />, color: 'bg-blue-500' },
           { label: 'Posts', value: stats.total_posts, icon: <FileText className="h-5 w-5" />, color: 'bg-green-500' },
-          { label: 'Channels', value: stats.total_channels, icon: <Hash className="h-5 w-5" />, color: 'bg-cyan-500' },
+          { label: 'Clubs', value: stats.total_channels, icon: <Hash className="h-5 w-5" />, color: 'bg-cyan-500' },
           { label: 'Events', value: stats.total_events, icon: <Calendar className="h-5 w-5" />, color: 'bg-pink-500' },
         ].map((s) => (
           <StatCard key={s.label} label={s.label} value={s.value} icon={s.icon} color={s.color} />

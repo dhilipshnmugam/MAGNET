@@ -19,6 +19,9 @@ export default function RegisterPage() {
     password: '',
     confirmPassword: '',
     department_id: '',
+    register_number: '',
+    year: '',
+    college_name: '',
     college_id: '',
     year_of_study: '',
     semester: '',
@@ -37,7 +40,7 @@ export default function RegisterPage() {
   const { errors, validateForm, validateField } = useFormValidation(registerRules);
 
   useEffect(() => {
-    departmentService.list().then((res) => {
+    departmentService.list({ status: 'active' }).then((res) => {
       setDepartments(res.data.data || []);
     }).catch(() => {});
   }, []);
@@ -48,19 +51,30 @@ export default function RegisterPage() {
     e.preventDefault();
     if (!validateForm(form)) return;
 
+    if (!form.department_id) {
+      toast.error('Please select your department.');
+      return;
+    }
+    if (!form.register_number) {
+      toast.error('Register number is required.');
+      return;
+    }
+    if (!form.year) {
+      toast.error('Please select your academic year.');
+      return;
+    }
+
     const payload: any = {
       full_name: form.full_name,
       email: form.email,
       password: form.password,
+      department_id: form.department_id,
+      register_number: form.register_number,
+      year: form.year,
     };
 
-    if (form.department_id) payload.department_id = form.department_id;
-
-    if (!form.college_id) {
-      toast.error('Register number is required for students.');
-      return;
-    }
-    payload.college_id = form.college_id;
+    if (form.college_name) payload.college_name = form.college_name;
+    if (form.college_id) payload.college_id = form.college_id;
     if (form.year_of_study) payload.year_of_study = parseInt(form.year_of_study);
     if (form.semester) payload.semester = parseInt(form.semester);
     if (form.section) payload.section = form.section;
@@ -119,24 +133,43 @@ export default function RegisterPage() {
               {errors.confirmPassword && <p className="mt-1 flex items-center gap-1 text-xs text-red-500"><AlertCircle className="h-3 w-3" /> {errors.confirmPassword}</p>}
             </div>
 
-            {/* Department */}
+            {/* Department - Required */}
             <div className={fieldCls}>
               <Building2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-              <select value={form.department_id} onChange={(e) => update('department_id', e.target.value)} className={inputCls}>
-                <option value="">Select Department</option>
+              <select value={form.department_id} onChange={(e) => update('department_id', e.target.value)} className={`${inputCls} ${!form.department_id ? 'text-gray-400' : ''}`}>
+                <option value="" className="text-gray-400">Select Department *</option>
                 {departments.map((d) => (
-                  <option key={d.id} value={d.id}>{d.name} ({d.code})</option>
+                  <option key={d.id} value={d.id} className="text-gray-900 dark:text-white">{d.name} ({d.code})</option>
                 ))}
+              </select>
+              {!form.department_id && <p className="mt-1 flex items-center gap-1 text-xs text-red-500"><AlertCircle className="h-3 w-3" /> Department is required</p>}
+            </div>
+
+            {/* Register Number - Required */}
+            <div className={fieldCls}>
+              <input type="text" value={form.register_number} onChange={(e) => update('register_number', e.target.value)} className="input text-xs w-full" placeholder="Register Number *" />
+            </div>
+
+            {/* Academic Year - Required */}
+            <div className={fieldCls}>
+              <select value={form.year} onChange={(e) => update('year', e.target.value)} className={`input text-xs w-full ${!form.year ? 'text-gray-400' : ''}`}>
+                <option value="">Academic Year *</option>
+                <option value="1st">1st Year</option>
+                <option value="2nd">2nd Year</option>
+                <option value="3rd">3rd Year</option>
+                <option value="4th">4th Year</option>
               </select>
             </div>
 
-            {/* Student Fields */}
+            {/* College Name */}
             <div className={fieldCls}>
-              <input type="text" value={form.college_id} onChange={(e) => update('college_id', e.target.value)} className="input text-xs w-full" placeholder="Register Number *" />
+              <input type="text" value={form.college_name} onChange={(e) => update('college_name', e.target.value)} className="input text-xs w-full" placeholder="College Name (optional)" />
             </div>
+
+            {/* Additional Student Fields */}
             <div className="grid grid-cols-2 gap-2">
               <select value={form.year_of_study} onChange={(e) => update('year_of_study', e.target.value)} className="input text-xs">
-                <option value="">Year</option>
+                <option value="">Year (1-5)</option>
                 {[1,2,3,4,5].map((y) => <option key={y} value={y}>Year {y}</option>)}
               </select>
               <select value={form.semester} onChange={(e) => update('semester', e.target.value)} className="input text-xs">
@@ -147,6 +180,9 @@ export default function RegisterPage() {
             <div className="grid grid-cols-2 gap-2">
               <input type="text" value={form.section} onChange={(e) => update('section', e.target.value)} className="input text-xs" placeholder="Section" />
               <input type="tel" value={form.phone} onChange={(e) => update('phone', e.target.value)} className="input text-xs" placeholder="Phone" />
+            </div>
+            <div className={fieldCls}>
+              <input type="text" value={form.college_id} onChange={(e) => update('college_id', e.target.value)} className="input text-xs w-full" placeholder="College ID (optional)" />
             </div>
 
             <p className="text-center text-[11px] text-gray-400">By signing up, you agree to our Terms, Privacy Policy and Cookies Policy.</p>

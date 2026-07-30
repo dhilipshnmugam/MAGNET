@@ -25,11 +25,13 @@ WORKDIR /app
 
 COPY --chown=magnet:magnet . .
 
+RUN chmod +x /app/entrypoint.sh
+
 USER magnet
 
 EXPOSE 8000
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=5 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+CMD ["/app/entrypoint.sh"]

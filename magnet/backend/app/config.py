@@ -1,5 +1,9 @@
+import os
 from pydantic_settings import BaseSettings
 from typing import List
+
+
+BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 class Settings(BaseSettings):
@@ -44,6 +48,15 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = True
+
+    def model_post_init(self, __context):
+        if self.DATABASE_URL.startswith("sqlite"):
+            prefix = "sqlite+aiosqlite:///"
+            raw_path = self.DATABASE_URL[len(prefix):]
+            if not os.path.isabs(raw_path):
+                abs_path = os.path.normpath(os.path.join(BACKEND_DIR, raw_path))
+                object.__setattr__(self, "DATABASE_URL", f"{prefix}{abs_path}")
+                os.makedirs(os.path.dirname(abs_path), exist_ok=True)
 
 
 settings = Settings()

@@ -326,10 +326,12 @@ export default function PostCard({ post, onDelete }: PostCardProps) {
                         </button>
                       </>
                     )}
-                    <button onClick={() => { handleDelete(); setShowMenu(false); }}
-                      className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 dark:hover:bg-red-900/20">
-                      <Trash2 className="h-4 w-4" /> Delete post
-                    </button>
+                    {onDelete && user?.id === post.author_id && (
+                      <button onClick={() => { handleDelete(); setShowMenu(false); }}
+                        className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 dark:hover:bg-red-900/20">
+                        <Trash2 className="h-4 w-4" /> Delete post
+                      </button>
+                    )}
                   </div>
                 </>
               )}

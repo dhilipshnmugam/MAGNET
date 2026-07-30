@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import Avatar from '../common/Avatar';
-import api from '../../services/api';
+import { searchService } from '../../services';
 
 export default function SuggestionsSidebar() {
   const { user } = useAuth();
@@ -12,9 +12,9 @@ export default function SuggestionsSidebar() {
   useEffect(() => {
     const fetchSuggestions = async () => {
       try {
-        const res = await api.get('/users/search', { params: { q: '', limit: 5 } });
-        const data = res.data?.data || res.data?.results || [];
-        setSuggestions(data.filter((u: any) => u.id !== user?.id));
+        const res = await searchService.search('a', 'people', 1, 10);
+        const data = res.data?.data?.users?.data || [];
+        setSuggestions(data.filter((u: any) => u.id !== user?.id).slice(0, 5));
       } catch {
         setSuggestions([]);
       }
@@ -24,7 +24,6 @@ export default function SuggestionsSidebar() {
 
   return (
     <div className="sticky top-[76px] py-6">
-      {/* Current user */}
       <div className="mb-5 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Avatar src={user?.avatar_url} name={user?.full_name || 'U'} size="md" />
@@ -38,13 +37,11 @@ export default function SuggestionsSidebar() {
         </button>
       </div>
 
-      {/* Suggestions header */}
       <div className="mb-3 flex items-center justify-between">
         <p className="text-sm font-semibold text-gray-500">Suggested for you</p>
-        <button className="text-xs font-semibold text-gray-900 hover:text-gray-500 dark:text-white">See All</button>
+        <button onClick={() => navigate('/search')} className="text-xs font-semibold text-gray-900 hover:text-gray-500 dark:text-white">See All</button>
       </div>
 
-      {/* Suggestion list */}
       <div className="space-y-3">
         {suggestions.length === 0 ? (
           <p className="text-xs text-gray-400">No suggestions yet</p>
@@ -66,7 +63,6 @@ export default function SuggestionsSidebar() {
         )}
       </div>
 
-      {/* Footer links */}
       <div className="mt-6 text-[11px] text-gray-300 dark:text-gray-600">
         <p className="flex flex-wrap gap-x-1">
           <span>About</span> · <span>Help</span> · <span>Press</span> · <span>API</span> · <span>Jobs</span> · <span>Privacy</span> · <span>Terms</span>

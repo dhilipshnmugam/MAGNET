@@ -81,6 +81,11 @@ async def create_post(db: AsyncSession, author: User, data: PostCreate) -> Post:
 
     await sync_hashtags(db, post.id, data.content)
 
+    if data.image_url:
+        db.add(PostMedia(post_id=post.id, media_url=data.image_url, media_type="image", sort_order=0))
+    if data.video_url:
+        db.add(PostMedia(post_id=post.id, media_url=data.video_url, media_type="video", sort_order=0))
+
     try:
         await point_engine.on_post_created(db, author.id, post.id)
     except Exception:

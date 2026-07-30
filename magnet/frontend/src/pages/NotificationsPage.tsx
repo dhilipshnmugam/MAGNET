@@ -24,7 +24,7 @@ const TYPE_CONFIG: Record<string, { icon: React.ComponentType<{ className?: stri
   leaderboard: { icon: Trophy, color: 'text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20', label: 'Leaderboard' },
   message: { icon: Mail, color: 'text-indigo-500 bg-indigo-50 dark:bg-indigo-900/20', label: 'Message' },
   announcement: { icon: Megaphone, color: 'text-red-500 bg-red-50 dark:bg-red-900/20', label: 'Announcement' },
-  channel_invite: { icon: Hash, color: 'text-teal-500 bg-teal-50 dark:bg-teal-900/20', label: 'Channel' },
+  channel_invite: { icon: Hash, color: 'text-teal-500 bg-teal-50 dark:bg-teal-900/20', label: 'Club' },
   system: { icon: Info, color: 'text-gray-500 bg-gray-50 dark:bg-gray-800', label: 'System' },
 };
 

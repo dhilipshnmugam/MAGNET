@@ -54,7 +54,6 @@ export default function PrincipalDashboardPage() {
     { label: 'Faculty', value: ov.total_faculty, icon: <Users className="h-5 w-5" />, color: 'bg-indigo-500' },
     { label: 'Posts', value: ov.total_posts, icon: <FileText className="h-5 w-5" />, color: 'bg-cyan-500', change: monthly?.growth?.posts },
     { label: 'Events', value: ov.total_events, icon: <Calendar className="h-5 w-5" />, color: 'bg-teal-500', change: monthly?.growth?.events },
-    { label: 'Channels', value: ov.total_channels, icon: <Hash className="h-5 w-5" />, color: 'bg-emerald-500' },
     { label: 'Clubs', value: ov.total_clubs, icon: <Trophy className="h-5 w-5" />, color: 'bg-violet-500' },
     { label: 'Departments', value: ov.total_departments, icon: <Building2 className="h-5 w-5" />, color: 'bg-rose-500' },
   ];

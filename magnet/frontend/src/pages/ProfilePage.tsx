@@ -2,31 +2,29 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { userService, uploadService, postService, leaderboardService } from '../services';
-import { SimpleAreaChart, ChartCard } from '../components/charts';
 import Avatar from '../components/common/Avatar';
 import { ProfileSkeleton } from '../components/common/Skeleton';
 import PostCard from '../components/feed/PostCard';
 import PostCreator from '../components/feed/PostCreator';
-import { useTheme } from '../context/ThemeContext';
 import toast from 'react-hot-toast';
 import {
   Camera, Share2, Grid3X3, Bookmark, Award, Calendar, TrendingUp, Users,
-  BookOpen, Trophy, Zap, Clock, Star, Edit3, BarChart3, Crown, Plus,
-  Trash2, ArrowUpRight, Mail, MapPin, Flame, Sparkles, GraduationCap,
-  Shield, BadgeCheck, Play, Heart, MessageCircle, Eye, ChevronRight, Globe,
+  Edit3, BarChart3, Plus, Clock, Trophy, UserPlus, Check, Mail,
+  GraduationCap, MapPin, BadgeCheck, Briefcase, Building2, ExternalLink,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import type { Post } from '../types';
 
-interface ProfileStats {
-  total_posts: number;
-  campus_score: number;
-  department_rank: number;
-}
+const ROLE_BADGE: Record<string, { bg: string; text: string; label: string }> = {
+  student: { bg: 'bg-sky-100 dark:bg-sky-900/30', text: 'text-sky-700 dark:text-sky-300', label: 'Student' },
+  department_admin: { bg: 'bg-indigo-100 dark:bg-indigo-900/30', text: 'text-indigo-700 dark:text-indigo-300', label: 'Faculty' },
+  super_admin: { bg: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-700 dark:text-amber-300', label: 'Admin' },
+  club_admin: { bg: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-700 dark:text-emerald-300', label: 'Club Admin' },
+  principal: { bg: 'bg-rose-100 dark:bg-rose-900/30', text: 'text-rose-700 dark:text-rose-300', label: 'Principal' },
+};
 
 export default function ProfilePage() {
-  const { user, student, hod, refreshUser } = useAuth();
-  const { isDark } = useTheme();
+  const { user: authUser, student: authStudent, hod: authHod, refreshUser } = useAuth();
   const navigate = useNavigate();
   const { userId } = useParams<{ userId: string }>();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -36,59 +34,49 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
-  const [activeTab, setActiveTab] = useState<'posts' | 'saved' | 'achievements' | 'analytics' | 'clubs'>('posts');
+  const [activeTab, setActiveTab] = useState<'posts' | 'saved' | 'achievements' | 'analytics'>('posts');
   const [isEditing, setIsEditing] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [profileUser, setProfileUser] = useState<any>(null);
-  const [isOwnProfile, setIsOwnProfile] = useState(true);
   const [showCreator, setShowCreator] = useState(false);
 
-  const [stats, setStats] = useState<ProfileStats>({
-    total_posts: 0, campus_score: 0, department_rank: 0,
-  });
+  const [profileUser, setProfileUser] = useState<any>(null);
+  const [profileStudent, setProfileStudent] = useState<any>(null);
+  const [profileHod, setProfileHod] = useState<any>(null);
+  const [isOwnProfile, setIsOwnProfile] = useState(true);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followerCount, setFollowerCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
+  const [postCount, setPostCount] = useState(0);
+  const [followLoading, setFollowLoading] = useState(false);
+
   const [posts, setPosts] = useState<Post[]>([]);
   const [savedPosts, setSavedPosts] = useState<Post[]>([]);
   const [rankData, setRankData] = useState<any>(null);
+  const [campusScore, setCampusScore] = useState(0);
 
   const [form, setForm] = useState({ full_name: '', bio: '' });
   const [studentForm, setStudentForm] = useState({ phone: '', section: '' });
 
-  const canCreatePost = user && user.role !== 'super_admin';
+  const viewingUserId = userId || authUser?.id;
+  const isOwn = !userId || userId === authUser?.id;
 
   useEffect(() => {
-    if (!user) return;
-    const viewingOther = userId && userId !== user.id;
-    setIsOwnProfile(!viewingOther);
-    if (viewingOther) {
-      loadOtherUserProfile(userId!);
+    if (!authUser) return;
+    if (isOwn) {
+      loadOwnProfile();
     } else {
-      setProfileUser(user);
-      setForm({ full_name: user.full_name, bio: user.bio || '' });
-      if (student) {
-        setStudentForm({ phone: student.phone || '', section: student.section || '' });
-      }
-      loadProfileData();
+      loadOtherProfile(userId!);
     }
-  }, [user, student, userId]);
+  }, [authUser, userId]);
 
-  const loadOtherUserProfile = async (uid: string) => {
+  const loadOwnProfile = async () => {
     setLoading(true);
-    try {
-      const [userRes, postsRes] = await Promise.allSettled([
-        userService.getById(uid),
-        postService.getUserPosts(uid, { page: 1, page_size: 50 }),
-      ]);
-      if (userRes.status === 'fulfilled') setProfileUser(userRes.value.data.data);
-      if (postsRes.status === 'fulfilled') {
-        const p = postsRes.value.data.data || [];
-        setPosts(p);
-        setStats(s => ({ ...s, total_posts: p.length }));
-      }
-    } catch {} finally { setLoading(false); }
-  };
+    setProfileUser(authUser);
+    setProfileStudent(authStudent);
+    setProfileHod(authHod);
+    setIsOwnProfile(true);
+    setForm({ full_name: authUser!.full_name, bio: authUser!.bio || '' });
+    if (authStudent) setStudentForm({ phone: authStudent.phone || '', section: authStudent.section || '' });
 
-  const loadProfileData = async () => {
-    setLoading(true);
     try {
       const [postsRes, savedRes, rankRes] = await Promise.allSettled([
         postService.getFeed({ filter_type: 'my_posts', page: 1, page_size: 50 }),
@@ -98,27 +86,58 @@ export default function ProfilePage() {
       if (postsRes.status === 'fulfilled') {
         const p = postsRes.value.data.data || [];
         setPosts(p);
-        setStats(s => ({ ...s, total_posts: p.length }));
+        setPostCount(p.length);
       }
-      if (savedRes.status === 'fulfilled') {
-        setSavedPosts(savedRes.value.data.data || []);
-      }
+      if (savedRes.status === 'fulfilled') setSavedPosts(savedRes.value.data.data || []);
       if (rankRes.status === 'fulfilled') {
         const r = rankRes.value.data.data;
         setRankData(r);
-        setStats(s => ({ ...s, campus_score: r.total_points || 0, department_rank: r.student_rank || 0 }));
+        setCampusScore(r.total_points || 0);
       }
     } catch {} finally { setLoading(false); }
   };
 
-  const handlePostCreated = useCallback(() => {
-    loadProfileData();
-  }, []);
+  const loadOtherProfile = async (uid: string) => {
+    setLoading(true);
+    setIsOwnProfile(false);
+    try {
+      const [profileRes, postsRes] = await Promise.allSettled([
+        userService.getProfile(uid),
+        postService.getUserPosts(uid, { page: 1, page_size: 50 }),
+      ]);
+      if (profileRes.status === 'fulfilled') {
+        const d = profileRes.value.data.data;
+        setProfileUser(d.user);
+        setProfileStudent(d.student);
+        setProfileHod(d.hod);
+        setIsFollowing(d.is_following);
+        setFollowerCount(d.follower_count || 0);
+        setFollowingCount(d.following_count || 0);
+        setPostCount(d.post_count || 0);
+      }
+      if (postsRes.status === 'fulfilled') {
+        setPosts(postsRes.value.data.data || []);
+      }
+    } catch {} finally { setLoading(false); }
+  };
 
-  const handleDeletePost = useCallback((postId: string) => {
-    setPosts(prev => prev.filter(p => p.id !== postId));
-    setStats(s => ({ ...s, total_posts: Math.max(0, s.total_posts - 1) }));
-  }, []);
+  const handleFollow = async () => {
+    if (!viewingUserId || followLoading) return;
+    setFollowLoading(true);
+    try {
+      if (isFollowing) {
+        await userService.unfollow(viewingUserId);
+        setIsFollowing(false);
+        setFollowerCount((c) => Math.max(0, c - 1));
+      } else {
+        await userService.follow(viewingUserId);
+        setIsFollowing(true);
+        setFollowerCount((c) => c + 1);
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.detail || 'Action failed');
+    } finally { setFollowLoading(false); }
+  };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -128,6 +147,7 @@ export default function ProfilePage() {
       const res = await uploadService.image(file, 'magnet/avatars');
       await userService.updateMe({ avatar_url: res.data.data.url });
       await refreshUser();
+      setProfileUser((prev: any) => ({ ...prev, avatar_url: res.data.data.url }));
       toast.success('Avatar updated');
     } catch { toast.error('Upload failed'); } finally { setUploadingAvatar(false); }
   };
@@ -140,6 +160,7 @@ export default function ProfilePage() {
       const res = await uploadService.image(file, 'magnet/covers');
       await userService.updateMe({ cover_url: res.data.data.url });
       await refreshUser();
+      setProfileUser((prev: any) => ({ ...prev, cover_url: res.data.data.url }));
       toast.success('Cover photo updated');
     } catch { toast.error('Upload failed'); } finally { setUploadingCover(false); }
   };
@@ -148,46 +169,43 @@ export default function ProfilePage() {
     setSaving(true);
     try {
       await userService.updateMe(form);
-      if (user?.role === 'student') await userService.updateStudent(studentForm);
+      if (authUser?.role === 'student') await userService.updateStudent(studentForm);
       await refreshUser();
+      setProfileUser((prev: any) => ({ ...prev, ...form }));
       setIsEditing(false);
       toast.success('Profile updated');
     } catch { toast.error('Update failed'); } finally { setSaving(false); }
   };
 
+  const handlePostCreated = useCallback(() => {
+    if (isOwn) loadOwnProfile();
+  }, [isOwn]);
+
+  const handleDeletePost = useCallback((postId: string) => {
+    setPosts(prev => prev.filter(p => p.id !== postId));
+    setPostCount((c) => Math.max(0, c - 1));
+  }, []);
+
   if (loading) return <ProfileSkeleton />;
-  const displayUser = profileUser || user;
+  const displayUser = profileUser || authUser;
   if (!displayUser) return null;
 
-  const username = displayUser.full_name.toLowerCase().replace(/\s+/g, '.');
+  const badge = ROLE_BADGE[displayUser.role] || ROLE_BADGE.student;
   const memberSince = format(new Date(displayUser.created_at), 'MMM yyyy');
-
-  const tabs = [
-    { key: 'posts', label: 'My Posts', icon: Grid3X3 },
-    { key: 'saved', label: 'Saved', icon: Bookmark },
-    { key: 'achievements', label: 'Achievements', icon: Award },
-    { key: 'analytics', label: 'Analytics', icon: BarChart3 },
-    { key: 'clubs', label: 'Clubs', icon: Users },
-  ] as const;
-
-  const roleBadgeClass = (role: string) => {
-    switch (role) {
-      case 'super_admin': return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
-      case 'department_admin': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400';
-      case 'club_admin': return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400';
-      case 'principal': return 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400';
-      default: return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
-    }
-  };
+  const canCreatePost = isOwn && authUser && authUser.role !== 'super_admin';
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 pb-20 lg:pb-6">
-      {/* HERO / COVER */}
+      {/* COVER */}
       <div className="card overflow-hidden animate-fade-in">
         <div className="relative h-48 bg-gradient-to-r from-[#0095f6] via-indigo-500 to-purple-600 sm:h-56 md:h-64">
+          {displayUser.cover_url && (
+            <img src={displayUser.cover_url} alt="" className="h-full w-full object-cover" />
+          )}
           <div className="absolute inset-0 bg-black/10" />
-          {isOwnProfile && (
-            <button onClick={() => coverInputRef.current?.click()} className="absolute right-4 top-4 flex items-center gap-1.5 rounded-full bg-black/40 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm transition-all hover:bg-black/60">
+          {isOwn && (
+            <button onClick={() => coverInputRef.current?.click()}
+              className="absolute right-4 top-4 flex items-center gap-1.5 rounded-full bg-black/40 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm transition-all hover:bg-black/60">
               <Camera className="h-3.5 w-3.5" />{uploadingCover ? 'Uploading...' : 'Cover Photo'}
             </button>
           )}
@@ -201,8 +219,9 @@ export default function ProfilePage() {
               <div className="rounded-full border-4 border-white bg-white shadow-lg dark:border-gray-900 dark:bg-gray-900">
                 <Avatar src={displayUser.avatar_url} name={displayUser.full_name} size="xl" className="h-28 w-28 sm:h-32 sm:w-32" />
               </div>
-              {isOwnProfile && (
-                <button onClick={() => fileInputRef.current?.click()} className="absolute bottom-1 right-1 rounded-full bg-[#0095f6] p-2 text-white shadow-lg transition-all hover:bg-[#1877f2] hover:scale-105">
+              {isOwn && (
+                <button onClick={() => fileInputRef.current?.click()}
+                  className="absolute bottom-1 right-1 rounded-full bg-[#0095f6] p-2 text-white shadow-lg transition-all hover:bg-[#1877f2] hover:scale-105">
                   <Camera className="h-4 w-4" />
                 </button>
               )}
@@ -210,21 +229,34 @@ export default function ProfilePage() {
             </div>
 
             <div className="flex items-center gap-2 pb-2">
-              {isOwnProfile ? (
+              {isOwn ? (
                 <>
                   {canCreatePost && (
-                    <button onClick={() => setShowCreator(true)} className="flex items-center gap-1.5 rounded-lg bg-[#0095f6] px-4 py-1.5 text-sm font-semibold text-white transition-all hover:bg-[#1877f2]">
+                    <button onClick={() => setShowCreator(true)}
+                      className="flex items-center gap-1.5 rounded-lg bg-[#0095f6] px-4 py-1.5 text-sm font-semibold text-white transition-all hover:bg-[#1877f2]">
                       <Plus className="h-4 w-4" /> Create Post
                     </button>
                   )}
-                  <button onClick={() => setIsEditing(!isEditing)} className="rounded-lg border border-gray-300 px-4 py-1.5 text-sm font-semibold transition-all hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800">
+                  <button onClick={() => setIsEditing(!isEditing)}
+                    className="rounded-lg border border-gray-300 px-4 py-1.5 text-sm font-semibold transition-all hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800">
                     <Edit3 className="mr-1 inline h-3.5 w-3.5" />{isEditing ? 'Cancel' : 'Edit Profile'}
                   </button>
                 </>
               ) : (
-                <button onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success('Link copied!'); }} className="rounded-lg border border-gray-300 px-4 py-1.5 text-sm font-semibold transition-all hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800">
-                  <Share2 className="mr-1 inline h-4 w-4" /> Share
-                </button>
+                <>
+                  <button onClick={handleFollow} disabled={followLoading}
+                    className={`flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-sm font-semibold transition-all ${
+                      isFollowing
+                        ? 'border border-gray-300 text-gray-700 hover:border-red-300 hover:text-red-600 dark:border-gray-600 dark:hover:border-red-500'
+                        : 'bg-[#0095f6] text-white hover:bg-[#1877f2]'
+                    }`}>
+                    {isFollowing ? <><Check className="h-4 w-4" /> Following</> : <><UserPlus className="h-4 w-4" /> Follow</>}
+                  </button>
+                  <button onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success('Link copied!'); }}
+                    className="rounded-lg border border-gray-300 px-4 py-1.5 text-sm font-semibold transition-all hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800">
+                    <Share2 className="h-4 w-4" />
+                  </button>
+                </>
               )}
             </div>
           </div>
@@ -233,60 +265,70 @@ export default function ProfilePage() {
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-xl font-bold sm:text-2xl">{displayUser.full_name}</h1>
               {displayUser.is_verified && <BadgeCheck className="h-5 w-5 text-[#0095f6]" />}
-              <span className={`badge text-[10px] font-bold uppercase tracking-wider ${roleBadgeClass(displayUser.role)}`}>
-                {displayUser.role?.replace('_', ' ')}
+              <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${badge.bg} ${badge.text}`}>
+                {badge.label}
               </span>
             </div>
-            <p className="mt-0.5 text-sm text-gray-500">@{username}</p>
-            {displayUser.bio && <p className="mt-2 max-w-lg text-sm leading-relaxed">{displayUser.bio}</p>}
-            <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-gray-500">
-              {student && (
+
+            {displayUser.bio && <p className="mt-2 max-w-lg text-sm leading-relaxed text-gray-600 dark:text-gray-400">{displayUser.bio}</p>}
+
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
+              {profileStudent && (
                 <>
-                  <span className="flex items-center gap-1"><GraduationCap className="h-3.5 w-3.5" /> Year {student.year_of_study} · Sem {student.semester}</span>
-                  <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> Section {student.section || '-'}</span>
+                  <span className="flex items-center gap-1"><GraduationCap className="h-3.5 w-3.5" /> Year {profileStudent.year_of_study} · Sem {profileStudent.semester}</span>
+                  {profileStudent.section && <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> Section {profileStudent.section}</span>}
+                  {profileStudent.roll_number && <span className="flex items-center gap-1"><BadgeCheck className="h-3.5 w-3.5" /> Roll #{profileStudent.roll_number}</span>}
                 </>
               )}
-              {hod && <span className="flex items-center gap-1"><GraduationCap className="h-3.5 w-3.5" /> {hod.designation || 'HOD'}</span>}
-              <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> Joined {memberSince}</span>
-              {stats.department_rank > 0 && (
-                <span className="flex items-center gap-1 font-semibold text-amber-600 dark:text-amber-400">
-                  <Trophy className="h-3.5 w-3.5" /> Rank #{stats.department_rank}
-                </span>
+              {profileHod && (
+                <>
+                  <span className="flex items-center gap-1"><Briefcase className="h-3.5 w-3.5" /> {profileHod.designation || 'HOD'}</span>
+                  {profileHod.employee_id && <span className="flex items-center gap-1"><BadgeCheck className="h-3.5 w-3.5" /> ID: {profileHod.employee_id}</span>}
+                  {profileHod.office_room && <span className="flex items-center gap-1"><Building2 className="h-3.5 w-3.5" /> {profileHod.office_room}</span>}
+                </>
               )}
+              {displayUser.department_name && (
+                <span className="flex items-center gap-1"><Building2 className="h-3.5 w-3.5" /> {displayUser.department_name}</span>
+              )}
+              <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> Joined {memberSince}</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* STATISTICS */}
+      {/* STATS */}
       <div className="grid grid-cols-3 gap-3 animate-slide-up">
         <div className="card p-4 text-center">
-          <p className="text-2xl font-bold">{stats.total_posts}</p>
+          <p className="text-2xl font-bold">{isOwn ? posts.length : postCount}</p>
           <p className="text-xs text-gray-500">Posts</p>
         </div>
-        <div className="card p-4 text-center">
-          <p className="text-2xl font-bold">{stats.campus_score}</p>
-          <p className="text-xs text-gray-500">Campus Score</p>
+        <div className="card p-4 text-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+          <p className="text-2xl font-bold">{followerCount}</p>
+          <p className="text-xs text-gray-500">Followers</p>
         </div>
-        <div className="card p-4 text-center">
-          <p className="text-2xl font-bold">#{stats.department_rank || '-'}</p>
-          <p className="text-xs text-gray-500">Rank</p>
+        <div className="card p-4 text-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+          <p className="text-2xl font-bold">{followingCount}</p>
+          <p className="text-xs text-gray-500">Following</p>
         </div>
       </div>
 
       {/* TABS */}
       <div className="card overflow-hidden">
         <div className="flex overflow-x-auto border-b border-gray-200 dark:border-gray-800 scrollbar-hide">
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
+          {[
+            { key: 'posts' as const, label: isOwn ? 'My Posts' : 'Posts', icon: Grid3X3 },
+            ...(isOwn ? [
+              { key: 'saved' as const, label: 'Saved', icon: Bookmark },
+              { key: 'analytics' as const, label: 'Analytics', icon: BarChart3 },
+            ] : []),
+            { key: 'achievements' as const, label: 'Achievements', icon: Award },
+          ].map((tab) => (
+            <button key={tab.key} onClick={() => setActiveTab(tab.key)}
               className={`flex flex-1 items-center justify-center gap-2 border-b-2 px-4 py-3 text-xs font-semibold uppercase tracking-wider transition-all sm:text-sm ${
                 activeTab === tab.key
                   ? 'border-[#0095f6] text-[#0095f6]'
                   : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-              }`}
-            >
+              }`}>
               <tab.icon className="h-4 w-4" />
               <span className="hidden sm:inline">{tab.label}</span>
             </button>
@@ -294,11 +336,11 @@ export default function ProfilePage() {
         </div>
 
         <div className="p-4 sm:p-6">
-          {/* MY POSTS TAB */}
           {activeTab === 'posts' && (
             <div className="animate-fade-in">
-              {canCreatePost && (
-                <button onClick={() => setShowCreator(true)} className="mb-4 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 p-4 text-sm font-semibold text-gray-500 transition-all hover:border-[#0095f6] hover:text-[#0095f6] hover:bg-blue-50 dark:border-gray-600 dark:hover:border-blue-500 dark:hover:bg-blue-900/10">
+              {isOwn && canCreatePost && (
+                <button onClick={() => setShowCreator(true)}
+                  className="mb-4 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 p-4 text-sm font-semibold text-gray-500 transition-all hover:border-[#0095f6] hover:text-[#0095f6] hover:bg-blue-50 dark:border-gray-600 dark:hover:border-blue-500 dark:hover:bg-blue-900/10">
                   <Plus className="h-5 w-5" /> Create New Post
                 </button>
               )}
@@ -306,20 +348,18 @@ export default function ProfilePage() {
                 <div className="py-16 text-center">
                   <Grid3X3 className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600" />
                   <p className="mt-3 text-sm font-medium text-gray-500">No posts yet</p>
-                  <p className="text-xs text-gray-400">{canCreatePost ? 'Share your first campus moment' : 'No posts to show'}</p>
                 </div>
               ) : (
                 <div className="space-y-4">
                   {posts.map((post) => (
-                    <PostCard key={post.id} post={post} onDelete={handleDeletePost} />
+                    <PostCard key={post.id} post={post} onDelete={isOwn ? handleDeletePost : undefined} />
                   ))}
                 </div>
               )}
             </div>
           )}
 
-          {/* SAVED POSTS TAB */}
-          {activeTab === 'saved' && (
+          {activeTab === 'saved' && isOwn && (
             <div className="animate-fade-in">
               {savedPosts.length === 0 ? (
                 <div className="py-16 text-center">
@@ -337,16 +377,7 @@ export default function ProfilePage() {
             </div>
           )}
 
-          {/* ACHIEVEMENTS TAB */}
-          {activeTab === 'achievements' && (
-            <div className="animate-fade-in py-16 text-center">
-              <Trophy className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600" />
-              <p className="mt-3 text-sm font-medium text-gray-500">Achievements coming soon</p>
-            </div>
-          )}
-
-          {/* ANALYTICS TAB */}
-          {activeTab === 'analytics' && (
+          {activeTab === 'analytics' && isOwn && (
             <div className="animate-fade-in space-y-6">
               {rankData && (
                 <div className="rounded-xl border border-gray-200 p-5 dark:border-gray-700">
@@ -370,21 +401,24 @@ export default function ProfilePage() {
                   </div>
                 </div>
               )}
+              <div className="rounded-xl border border-gray-200 p-5 dark:border-gray-700">
+                <h3 className="mb-2 font-semibold">Total Score</h3>
+                <p className="text-3xl font-bold text-[#0095f6]">{campusScore.toLocaleString()}</p>
+              </div>
             </div>
           )}
 
-          {/* CLUBS TAB */}
-          {activeTab === 'clubs' && (
+          {activeTab === 'achievements' && (
             <div className="animate-fade-in py-16 text-center">
-              <Users className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600" />
-              <p className="mt-3 text-sm font-medium text-gray-500">Club memberships coming soon</p>
+              <Trophy className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600" />
+              <p className="mt-3 text-sm font-medium text-gray-500">Achievements coming soon</p>
             </div>
           )}
         </div>
       </div>
 
       {/* EDIT PROFILE */}
-      {isEditing && (
+      {isOwn && isEditing && (
         <div className="card p-6 space-y-5 animate-scale-in">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold">Edit Profile</h2>
@@ -397,14 +431,14 @@ export default function ProfilePage() {
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-gray-500">Email</label>
-              <input value={user?.email || ''} disabled className="input opacity-50 cursor-not-allowed" />
+              <input value={authUser?.email || ''} disabled className="input opacity-50 cursor-not-allowed" />
             </div>
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-gray-500">Bio</label>
             <textarea value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} rows={3} className="input resize-none" placeholder="Tell us about yourself..." />
           </div>
-          {user?.role === 'student' && (
+          {authUser?.role === 'student' && (
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="mb-1 block text-xs font-medium text-gray-500">Phone</label>

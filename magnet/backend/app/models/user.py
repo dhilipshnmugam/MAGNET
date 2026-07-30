@@ -4,22 +4,26 @@ from sqlalchemy import (
     Column, String, Text, Boolean, DateTime, SmallInteger,
     ForeignKey, CheckConstraint
 )
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.database import Base
+from app.types import GUID
 
 
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
     email = Column(String(255), unique=True, nullable=False, index=True)
     password_hash = Column(String(255), nullable=False)
-    full_name = Column(String(150), nullable=False)
-    role = Column(String(20), nullable=False, default="student")
+    full_name = Column(String(150), nullable=False, index=True)
+    role = Column(String(20), nullable=False, default="student", index=True)
     avatar_url = Column(Text, nullable=True)
-    bio = Column(String(500), nullable=True)
-    department_id = Column(UUID(as_uuid=True), ForeignKey("departments.id", ondelete="SET NULL"), nullable=True, index=True)
+    cover_url = Column(Text, nullable=True)
+    bio = Column(String(500), nullable=True, index=True)
+    department_id = Column(GUID(), ForeignKey("departments.id", ondelete="SET NULL"), nullable=True, index=True)
+    year = Column(String(20), nullable=True)
+    register_number = Column(String(50), unique=True, nullable=True, index=True)
+    college_name = Column(String(255), nullable=True)
     is_verified = Column(Boolean, nullable=False, default=False)
     is_active = Column(Boolean, nullable=False, default=True, index=True)
     last_login_at = Column(DateTime(timezone=True), nullable=True)
@@ -49,6 +53,8 @@ class User(Base):
     owned_clubs = relationship("Club", back_populates="owner", foreign_keys="Club.owner_id")
     club_memberships = relationship("ClubMember", back_populates="user", cascade="all, delete-orphan")
     approval_requests = relationship("ApprovalRequest", back_populates="user", foreign_keys="ApprovalRequest.user_id")
+    following_rel = relationship("UserFollow", foreign_keys="UserFollow.follower_id", back_populates="follower", cascade="all, delete-orphan")
+    followers_rel = relationship("UserFollow", foreign_keys="UserFollow.following_id", back_populates="following", cascade="all, delete-orphan")
 
     __table_args__ = (
         CheckConstraint("role IN ('student', 'department_admin', 'super_admin', 'club_admin', 'principal')", name="chk_users_role"),
@@ -68,8 +74,8 @@ class User(Base):
 class Student(Base):
     __tablename__ = "students"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False)
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    user_id = Column(GUID(), ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False)
     college_id = Column(String(50), unique=True, nullable=False, index=True)
     roll_number = Column(String(30), nullable=True)
     year_of_study = Column(SmallInteger, nullable=True)
@@ -92,8 +98,8 @@ class Student(Base):
 class Hod(Base):
     __tablename__ = "hods"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False)
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    user_id = Column(GUID(), ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False)
     employee_id = Column(String(50), unique=True, nullable=False, index=True)
     designation = Column(String(100), nullable=True)
     qualification = Column(String(255), nullable=True)
@@ -105,3 +111,19 @@ class Hod(Base):
     updated_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     user = relationship("User", back_populates="hod_profile")
+
+
+class UserFollow(Base):
+    __tablename__ = "user_follows"
+
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    follower_id = Column(GUID(), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    following_id = Column(GUID(), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+
+    follower = relationship("User", foreign_keys=[follower_id], back_populates="following_rel")
+    following = relationship("User", foreign_keys=[following_id], back_populates="followers_rel")
+
+    __table_args__ = (
+        CheckConstraint("follower_id != following_id", name="chk_no_self_follow"),
+    )

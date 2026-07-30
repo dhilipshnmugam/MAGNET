@@ -40,18 +40,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setStudent(data.student || null);
       setHod(data.hod || null);
     } catch (error) {
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
       setUser(null);
       setStudent(null);
       setHod(null);
+      throw error;
     } finally {
       setIsInitializing(false);
     }
   }, []);
 
   useEffect(() => {
-    refreshUser();
+    refreshUser().catch(() => {});
   }, [refreshUser]);
 
   const login = async (email: string, password: string) => {

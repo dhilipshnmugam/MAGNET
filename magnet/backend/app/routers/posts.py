@@ -20,7 +20,6 @@ async def create_post(data: PostCreate, db: AsyncSession = Depends(get_db), user
         raise HTTPException(status_code=403, detail="Super Admin cannot create posts.")
     post = await post_service.create_post(db, user, data)
     post_data = PostOut.model_validate(post).model_dump()
-    post_data["media"] = []
     return ResponseModel(data=post_data, message="Post created")
 
 

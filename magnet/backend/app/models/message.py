@@ -1,17 +1,17 @@
 import uuid
 from datetime import datetime
 from sqlalchemy import Column, Text, Boolean, DateTime, ForeignKey, CheckConstraint
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.database import Base
+from app.types import GUID
 
 
 class DirectMessage(Base):
     __tablename__ = "direct_messages"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    sender_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="RESTRICT"), nullable=False, index=True)
-    receiver_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="RESTRICT"), nullable=False, index=True)
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    sender_id = Column(GUID(), ForeignKey("users.id", ondelete="RESTRICT"), nullable=False, index=True)
+    receiver_id = Column(GUID(), ForeignKey("users.id", ondelete="RESTRICT"), nullable=False, index=True)
     content = Column(Text, nullable=True)
     image_url = Column(Text, nullable=True)
     is_read = Column(Boolean, nullable=False, default=False)

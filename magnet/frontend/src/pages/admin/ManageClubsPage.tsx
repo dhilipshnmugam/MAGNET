@@ -5,33 +5,38 @@ import { PageLoader } from '../../components/common/Loader';
 import toast from 'react-hot-toast';
 import { Plus, Search, Trophy, Users, Eye, Edit2, Trash2, Zap, ChevronLeft, ChevronRight } from 'lucide-react';
 
-const DOMAINS: Record<string, string[]> = {
-  Technology: ['AI', 'ML', 'Data Science', 'Cyber Security', 'Web Dev', 'App Dev', 'Robotics', 'Cloud Computing'],
-  Sports: ['Cricket', 'Football', 'Volleyball', 'Basketball', 'Athletics', 'Chess', 'Kabaddi', 'Badminton'],
-  Cultural: ['Dance', 'Music', 'Drama', 'Photography', 'Fine Arts'],
-  Literary: ['Readers Club', 'Writers Club', 'Debate Club', 'Tamil Mandram', 'English Literary Club'],
-  'Social Service': ['NSS', 'NCC', 'Youth Red Cross', 'Environmental Club'],
-  Entrepreneurship: ['Startup Club', 'Innovation Club', 'Entrepreneurship Cell'],
-  Other: ['Custom Domain'],
-};
-
-const ALL_DOMAINS = Object.values(DOMAINS).flat();
+const CLUB_TYPES = [
+  { value: '', label: 'All Types' },
+  { value: 'technical', label: 'Technical' },
+  { value: 'cultural', label: 'Cultural' },
+  { value: 'sports', label: 'Sports' },
+  { value: 'literary', label: 'Literary' },
+  { value: 'social', label: 'Social Service' },
+  { value: 'other', label: 'Other' },
+];
 
 export default function ManageClubsPage() {
   const [clubs, setClubs] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [domain, setDomain] = useState('');
+  const [clubType, setClubType] = useState('');
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const pageSize = 10;
 
   const fetchClubs = async () => {
     try {
-      const res = await clubManagementService.list({ search, domain, status, page, page_size: 10 });
-      setClubs(res.data.data?.clubs || res.data.data || []);
-      setTotalPages(res.data.data?.total_pages || 1);
+      const res = await clubManagementService.list({
+        search: search || undefined,
+        club_type: clubType || undefined,
+        status: status || undefined,
+        page,
+        page_size: pageSize,
+      });
+      setClubs(res.data.data || []);
+      setTotal(res.data.total || 0);
     } catch {
       toast.error('Failed to load clubs');
     }
@@ -48,7 +53,7 @@ export default function ManageClubsPage() {
     Promise.all([fetchClubs(), fetchStats()]).then(() => setLoading(false));
   }, [page]);
 
-  useEffect(() => { setPage(1); fetchClubs(); }, [search, domain, status]);
+  useEffect(() => { setPage(1); fetchClubs(); }, [search, clubType, status]);
 
   const handleToggle = async (id: string) => {
     try {
@@ -75,6 +80,8 @@ export default function ManageClubsPage() {
 
   if (loading) return <PageLoader />;
 
+  const totalPages = Math.ceil(total / pageSize);
+
   const statCards = [
     { label: 'Total Clubs', value: stats?.total_clubs ?? 0, color: 'bg-sky-500' },
     { label: 'Active Clubs', value: stats?.active_clubs ?? 0, color: 'bg-green-500' },
@@ -84,7 +91,6 @@ export default function ManageClubsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Trophy className="h-7 w-7 text-sky-500" />
@@ -95,7 +101,6 @@ export default function ManageClubsPage() {
         </Link>
       </div>
 
-      {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {statCards.map((s) => (
           <div key={s.label} className="rounded-2xl border border-gray-100 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
@@ -112,7 +117,6 @@ export default function ManageClubsPage() {
         ))}
       </div>
 
-      {/* Filters */}
       <div className="card flex flex-wrap items-center gap-3 p-4">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
@@ -124,14 +128,21 @@ export default function ManageClubsPage() {
             className="w-full rounded-xl border border-gray-200 bg-white py-2 pl-10 pr-4 text-sm focus:border-sky-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800"
           />
         </div>
-        <select
-          value={domain}
-          onChange={(e) => setDomain(e.target.value)}
-          className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800"
-        >
-          <option value="">All Domains</option>
-          {ALL_DOMAINS.map((d) => <option key={d} value={d}>{d}</option>)}
-        </select>
+        <div className="flex items-center gap-2">
+          {CLUB_TYPES.map((t) => (
+            <button
+              key={t.value}
+              onClick={() => setClubType(t.value)}
+              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                clubType === t.value
+                  ? 'bg-sky-500 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
@@ -143,16 +154,15 @@ export default function ManageClubsPage() {
         </select>
       </div>
 
-      {/* Table */}
       <div className="card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/50 dark:border-gray-800 dark:bg-gray-900/50">
                 <th className="px-4 py-3 text-left font-medium text-gray-500">Club</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-500">Domain</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-500">Club Admin</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-500">Faculty Coord.</th>
+                <th className="px-4 py-3 text-left font-medium text-gray-500">Type</th>
+                <th className="px-4 py-3 text-left font-medium text-gray-500">Category</th>
+                <th className="px-4 py-3 text-left font-medium text-gray-500">Admin</th>
                 <th className="px-4 py-3 text-left font-medium text-gray-500">Members</th>
                 <th className="px-4 py-3 text-left font-medium text-gray-500">Status</th>
                 <th className="px-4 py-3 text-left font-medium text-gray-500">Actions</th>
@@ -164,8 +174,8 @@ export default function ManageClubsPage() {
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <div className="h-9 w-9 overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-800">
-                        {club.logo_url ? (
-                          <img src={club.logo_url} alt="" className="h-full w-full object-cover" />
+                        {club.icon_url ? (
+                          <img src={club.icon_url} alt="" className="h-full w-full object-cover" />
                         ) : (
                           <div className="flex h-full w-full items-center justify-center text-xs font-bold text-sky-500">
                             {club.name?.charAt(0)}
@@ -178,9 +188,13 @@ export default function ManageClubsPage() {
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{club.domain}</td>
+                  <td className="px-4 py-3">
+                    <span className="text-gray-600 dark:text-gray-400 capitalize">{club.club_type || '—'}</span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="text-gray-600 dark:text-gray-400">{club.category || '—'}</span>
+                  </td>
                   <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{club.club_admin_name || '—'}</td>
-                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{club.faculty_coordinator_name || '—'}</td>
                   <td className="px-4 py-3">
                     <span className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
                       <Users className="h-3.5 w-3.5" /> {club.member_count ?? 0}
@@ -222,7 +236,6 @@ export default function ManageClubsPage() {
           </table>
         </div>
 
-        {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3 dark:border-gray-800">
             <p className="text-sm text-gray-500">Page {page} of {totalPages}</p>

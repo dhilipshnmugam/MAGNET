@@ -1,22 +1,22 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, DateTime, ForeignKey, CheckConstraint
-from sqlalchemy.dialects.postgresql import UUID, INET, JSONB
+from sqlalchemy import Column, String, DateTime, ForeignKey, CheckConstraint, Text
 from sqlalchemy.orm import relationship
 from app.database import Base
+from app.types import GUID
 
 
 class ActivityLog(Base):
     __tablename__ = "activity_logs"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    user_id = Column(GUID(), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     action = Column(String(50), nullable=False, index=True)
     entity_type = Column(String(30), nullable=True)
-    entity_id = Column(UUID(as_uuid=True), nullable=True)
-    ip_address = Column(INET, nullable=True)
+    entity_id = Column(GUID(), nullable=True)
+    ip_address = Column(String(45), nullable=True)
     user_agent = Column(String(500), nullable=True)
-    metadata_ = Column("metadata", JSONB, nullable=True)
+    metadata_ = Column("metadata", Text, nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, index=True)
 
     user = relationship("User", back_populates="activity_logs")

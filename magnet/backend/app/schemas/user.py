@@ -19,7 +19,10 @@ class UserRegister(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=8, max_length=128)
     full_name: str = Field(..., min_length=1, max_length=150)
-    department_id: Optional[UUID] = None
+    department_id: UUID
+    register_number: str = Field(..., max_length=50)
+    year: str = Field(..., pattern=r"^(1st|2nd|3rd|4th)$")
+    college_name: Optional[str] = Field(None, max_length=255)
     college_id: Optional[str] = Field(None, max_length=50)
     year_of_study: Optional[int] = Field(None, ge=1, le=5)
     semester: Optional[int] = Field(None, ge=1, le=10)
@@ -37,6 +40,7 @@ class UserUpdate(BaseModel):
     full_name: Optional[str] = Field(None, min_length=1, max_length=150)
     bio: Optional[str] = Field(None, max_length=500)
     avatar_url: Optional[str] = None
+    cover_url: Optional[str] = None
     department_id: Optional[UUID] = None
 
 
@@ -85,8 +89,12 @@ class UserOut(BaseModel):
     full_name: str
     role: str
     avatar_url: Optional[str] = None
+    cover_url: Optional[str] = None
     bio: Optional[str] = None
     department_id: Optional[UUID] = None
+    year: Optional[str] = None
+    register_number: Optional[str] = None
+    college_name: Optional[str] = None
     is_verified: bool
     is_active: bool
     created_at: datetime
@@ -146,3 +154,14 @@ class RoleUpdate(BaseModel):
 
 class AccountStatusUpdate(BaseModel):
     is_active: bool
+
+
+class ProfileView(BaseModel):
+    user: UserOut
+    student: Optional[StudentOut] = None
+    hod: Optional[HodOut] = None
+    follower_count: int = 0
+    following_count: int = 0
+    post_count: int = 0
+    is_following: bool = False
+    is_self: bool = False

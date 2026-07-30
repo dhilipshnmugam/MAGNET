@@ -4,27 +4,27 @@ from sqlalchemy import (
     Column, String, Text, Boolean, DateTime, SmallInteger, Integer,
     ForeignKey, CheckConstraint, UniqueConstraint, Float
 )
-from sqlalchemy.dialects.postgresql import UUID, ARRAY
 from sqlalchemy.orm import relationship
 from app.database import Base
+from app.types import GUID
 
 
 class Post(Base):
     __tablename__ = "posts"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    author_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    channel_id = Column(UUID(as_uuid=True), ForeignKey("channels.id", ondelete="SET NULL"), nullable=True, index=True)
-    club_id = Column(UUID(as_uuid=True), ForeignKey("clubs.id", ondelete="SET NULL"), nullable=True, index=True)
-    content = Column(Text, nullable=False)
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    author_id = Column(GUID(), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    channel_id = Column(GUID(), ForeignKey("channels.id", ondelete="SET NULL"), nullable=True, index=True)
+    club_id = Column(GUID(), ForeignKey("clubs.id", ondelete="SET NULL"), nullable=True, index=True)
+    content = Column(Text, nullable=False, index=True)
     role = Column(String(20), nullable=True, index=True)
     image_url = Column(Text, nullable=True)
     video_url = Column(Text, nullable=True)
-    title = Column(String(300), nullable=True)
+    title = Column(String(300), nullable=True, index=True)
     post_type = Column(String(30), nullable=False, default="general", index=True)
     visibility = Column(String(20), nullable=False, default="public")
     location = Column(String(255), nullable=True)
-    hashtags = Column(Text, nullable=True)
+    hashtags = Column(Text, nullable=True, index=True)
     mention_ids = Column(Text, nullable=True)
     is_pinned = Column(Boolean, nullable=False, default=False)
     is_approved = Column(Boolean, nullable=False, default=True)
@@ -76,8 +76,8 @@ class Post(Base):
 class PostMedia(Base):
     __tablename__ = "post_media"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    post_id = Column(UUID(as_uuid=True), ForeignKey("posts.id", ondelete="CASCADE"), nullable=False, index=True)
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    post_id = Column(GUID(), ForeignKey("posts.id", ondelete="CASCADE"), nullable=False, index=True)
     media_url = Column(Text, nullable=False)
     media_type = Column(String(20), nullable=False, default="image")
     cloudinary_id = Column(String(255), nullable=True)
@@ -96,8 +96,8 @@ class PostMedia(Base):
 class PostImage(Base):
     __tablename__ = "post_images"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    post_id = Column(UUID(as_uuid=True), ForeignKey("posts.id", ondelete="CASCADE"), nullable=False, index=True)
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    post_id = Column(GUID(), ForeignKey("posts.id", ondelete="CASCADE"), nullable=False, index=True)
     image_url = Column(Text, nullable=False)
     cloudinary_id = Column(String(255), nullable=True)
     sort_order = Column(SmallInteger, nullable=False, default=0)
@@ -111,9 +111,9 @@ class PostImage(Base):
 class Like(Base):
     __tablename__ = "likes"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    post_id = Column(UUID(as_uuid=True), ForeignKey("posts.id", ondelete="CASCADE"), nullable=False, index=True)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    post_id = Column(GUID(), ForeignKey("posts.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(GUID(), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
 
     post = relationship("Post", back_populates="likes")
@@ -127,9 +127,9 @@ class Like(Base):
 class Bookmark(Base):
     __tablename__ = "bookmarks"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    post_id = Column(UUID(as_uuid=True), ForeignKey("posts.id", ondelete="CASCADE"), nullable=False, index=True)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    post_id = Column(GUID(), ForeignKey("posts.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(GUID(), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
 
     post = relationship("Post", back_populates="bookmarks")
@@ -143,9 +143,9 @@ class Bookmark(Base):
 class PostShare(Base):
     __tablename__ = "post_shares"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    post_id = Column(UUID(as_uuid=True), ForeignKey("posts.id", ondelete="CASCADE"), nullable=False, index=True)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    post_id = Column(GUID(), ForeignKey("posts.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(GUID(), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
 
     post = relationship("Post")
@@ -159,7 +159,7 @@ class PostShare(Base):
 class Hashtag(Base):
     __tablename__ = "hashtags"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
     tag = Column(String(100), unique=True, nullable=False, index=True)
     post_count = Column(Integer, nullable=False, default=0)
     created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
@@ -168,9 +168,9 @@ class Hashtag(Base):
 class PostHashtag(Base):
     __tablename__ = "post_hashtags"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    post_id = Column(UUID(as_uuid=True), ForeignKey("posts.id", ondelete="CASCADE"), nullable=False, index=True)
-    hashtag_id = Column(UUID(as_uuid=True), ForeignKey("hashtags.id", ondelete="CASCADE"), nullable=False, index=True)
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    post_id = Column(GUID(), ForeignKey("posts.id", ondelete="CASCADE"), nullable=False, index=True)
+    hashtag_id = Column(GUID(), ForeignKey("hashtags.id", ondelete="CASCADE"), nullable=False, index=True)
 
     post = relationship("Post")
     hashtag = relationship("Hashtag")

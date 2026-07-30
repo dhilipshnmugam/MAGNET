@@ -4,12 +4,27 @@ export interface User {
   full_name: string;
   role: 'student' | 'department_admin' | 'super_admin' | 'club_admin' | 'principal';
   avatar_url: string | null;
+  cover_url: string | null;
   bio: string | null;
   department_id: string | null;
   department_name: string | null;
+  year: string | null;
+  register_number: string | null;
+  college_name: string | null;
   is_verified: boolean;
   is_active: boolean;
   created_at: string;
+}
+
+export interface ProfileView {
+  user: User;
+  student: Student | null;
+  hod: Hod | null;
+  follower_count: number;
+  following_count: number;
+  post_count: number;
+  is_following: boolean;
+  is_self: boolean;
 }
 
 export interface Student {
@@ -268,8 +283,114 @@ export interface Department {
   id: string;
   name: string;
   code: string;
+  department_type: string | null;
   description: string | null;
+  logo_url: string | null;
+  cover_image_url: string | null;
+  head_id: string | null;
   is_active: boolean;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  student_count: number;
+  club_count: number;
+  hod_name: string | null;
+  hod_email: string | null;
+}
+
+export interface Club {
+  id: string;
+  name: string;
+  club_code: string;
+  description: string | null;
+  category: string | null;
+  domain: string | null;
+  club_type: string | null;
+  icon_url: string | null;
+  banner_url: string | null;
+  owner_id: string;
+  department_id: string | null;
+  faculty_coordinator_id: string | null;
+  club_admin_id: string | null;
+  created_by: string | null;
+  official_email: string | null;
+  official_phone: string | null;
+  website: string | null;
+  instagram: string | null;
+  linkedin: string | null;
+  approval_mode: string;
+  is_active: boolean;
+  status: string;
+  member_count: number;
+  created_at: string;
+  faculty_coordinator_name: string | null;
+  club_admin_name: string | null;
+  department_name: string | null;
+  post_count?: number;
+  event_count?: number;
+  user_role?: string;
+}
+
+export interface ClubMember {
+  id: string;
+  club_id: string;
+  user_id: string;
+  role: string;
+  joined_at: string;
+  user_name: string | null;
+  user_email: string | null;
+  user_avatar: string | null;
+}
+
+export interface ClubJoinRequest {
+  id: string;
+  club_id: string;
+  user_id: string;
+  status: string;
+  message: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+  user_name: string | null;
+  user_email: string | null;
+  reviewer_name: string | null;
+}
+
+export interface ClubEvent {
+  id: string;
+  club_id: string;
+  title: string;
+  description: string | null;
+  event_date: string;
+  end_date: string | null;
+  venue: string | null;
+  event_type: string;
+  banner_url: string | null;
+  rsvp_count: number;
+  is_active: boolean;
+  created_at: string;
+  creator_name: string | null;
+}
+
+export interface ClubGalleryItem {
+  id: string;
+  club_id: string;
+  image_url: string;
+  caption: string | null;
+  event_name: string | null;
+  created_at: string;
+  uploader_name: string | null;
+}
+
+export interface ClubAchievement {
+  id: string;
+  club_id: string;
+  title: string;
+  description: string | null;
+  achievement_type: string;
+  achieved_date: string | null;
+  certificate_url: string | null;
+  created_at: string;
 }
 
 export interface PaginatedResponse<T> {

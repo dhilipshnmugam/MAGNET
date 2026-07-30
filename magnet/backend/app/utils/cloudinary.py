@@ -1,11 +1,18 @@
 from typing import Optional
 import asyncio
-import cloudinary
-import cloudinary.uploader
 from app.config import settings
+
+try:
+    import cloudinary
+    import cloudinary.uploader
+    _cloudinary_available = True
+except ImportError:
+    _cloudinary_available = False
 
 
 def configure_cloudinary():
+    if not _cloudinary_available:
+        raise RuntimeError("cloudinary package is not installed")
     cloudinary.config(
         cloud_name=settings.CLOUDINARY_CLOUD_NAME,
         api_key=settings.CLOUDINARY_API_KEY,

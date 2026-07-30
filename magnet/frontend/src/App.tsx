@@ -37,6 +37,9 @@ import AdminAnalyticsPage from './pages/admin/AdminAnalyticsPage';
 import AdminSettingsPage from './pages/admin/AdminSettingsPage';
 import DepartmentAdminDashboardPage from './pages/DepartmentAdminDashboardPage';
 import ClubDashboardPage from './pages/ClubDashboardPage';
+import StudentClubsPage from './pages/StudentClubsPage';
+import StudentClubDetailsPage from './pages/ClubDetailsPage';
+import ClubAdminDashboardPage from './pages/ClubAdminDashboardPage';
 import PrincipalDashboardPage from './pages/PrincipalDashboardPage';
 import PrincipalDepartmentsPage from './pages/principal/PrincipalDepartmentsPage';
 import PrincipalClubsPage from './pages/principal/PrincipalClubsPage';
@@ -57,7 +60,7 @@ export default function App() {
                 <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
                 <Route path="/login/super-admin" element={<PublicRoute><SuperAdminLoginPage /></PublicRoute>} />
                 <Route path="/login/student" element={<PublicRoute><StudentLoginPage /></PublicRoute>} />
-                <Route path="/login/department-admin" element={<PublicRoute><HodLoginPage /></PublicRoute>} />
+                <Route path="/login/department-admin" element={<HodLoginPage />} />
                 <Route path="/login/principal" element={<PublicRoute><PrincipalLoginPage /></PublicRoute>} />
                 <Route path="/login/club" element={<PublicRoute><ClubLoginPage /></PublicRoute>} />
                 <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
@@ -91,6 +94,18 @@ export default function App() {
                 <Route
                   path="/clubs"
                   element={<ProtectedRoute roles={['department_admin', 'super_admin', 'club_admin']}><Layout><ClubDashboardPage /></Layout></ProtectedRoute>}
+                />
+                <Route
+                  path="/clubs/browse"
+                  element={<ProtectedRoute roles={['student', 'department_admin', 'super_admin', 'club_admin', 'principal']}><Layout><StudentClubsPage /></Layout></ProtectedRoute>}
+                />
+                <Route
+                  path="/clubs/:clubId"
+                  element={<ProtectedRoute roles={['student', 'department_admin', 'super_admin', 'club_admin', 'principal']}><Layout><StudentClubDetailsPage /></Layout></ProtectedRoute>}
+                />
+                <Route
+                  path="/clubs/admin-dashboard"
+                  element={<ProtectedRoute roles={['club_admin']}><Layout><ClubAdminDashboardPage /></Layout></ProtectedRoute>}
                 />
                 <Route
                   path="/principal"

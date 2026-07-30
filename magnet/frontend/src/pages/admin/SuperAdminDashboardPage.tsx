@@ -39,7 +39,7 @@ export default function AdminDashboardPage() {
   const statCards = [
     { label: 'Total Users', value: stats.total_users, icon: <Users className="h-5 w-5" />, color: 'bg-blue-500', change: monthly?.growth?.students },
     { label: 'Posts', value: stats.total_posts, icon: <FileText className="h-5 w-5" />, color: 'bg-green-500', change: monthly?.growth?.posts },
-    { label: 'Channels', value: stats.total_channels, icon: <Hash className="h-5 w-5" />, color: 'bg-cyan-500' },
+    { label: 'Clubs', value: stats.total_channels, icon: <Hash className="h-5 w-5" />, color: 'bg-cyan-500' },
     { label: 'Events', value: stats.total_events, icon: <Calendar className="h-5 w-5" />, color: 'bg-pink-500', change: monthly?.growth?.events },
     { label: 'Active Users', value: stats.active_users, icon: <UserCheck className="h-5 w-5" />, color: 'bg-emerald-500' },
     { label: 'Pending Approvals', value: stats.pending_approvals, icon: <Clock className="h-5 w-5" />, color: 'bg-yellow-500' },

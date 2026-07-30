@@ -4,20 +4,20 @@ from sqlalchemy import (
     Column, String, DateTime, Integer, SmallInteger,
     ForeignKey, CheckConstraint, Index, UniqueConstraint
 )
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.database import Base
+from app.types import GUID
 
 
 class Point(Base):
     __tablename__ = "points"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    user_id = Column(GUID(), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     activity_type = Column(String(30), nullable=False)
     points_value = Column(SmallInteger, nullable=False)
     ref_type = Column(String(30), nullable=True)
-    ref_id = Column(UUID(as_uuid=True), nullable=True)
+    ref_id = Column(GUID(), nullable=True)
     description = Column(String(255), nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
 
@@ -43,8 +43,8 @@ class Point(Base):
 class Leaderboard(Base):
     __tablename__ = "leaderboard"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False)
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    user_id = Column(GUID(), ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False)
     total_points = Column(Integer, nullable=False, default=0)
     rank = Column(Integer, nullable=True)
     streak_days = Column(SmallInteger, nullable=False, default=0)
@@ -61,8 +61,8 @@ class Leaderboard(Base):
 class ClubRanking(Base):
     __tablename__ = "club_rankings"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    club_id = Column(UUID(as_uuid=True), ForeignKey("clubs.id", ondelete="CASCADE"), unique=True, nullable=False)
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    club_id = Column(GUID(), ForeignKey("clubs.id", ondelete="CASCADE"), unique=True, nullable=False)
     total_points = Column(Integer, nullable=False, default=0)
     total_posts = Column(Integer, nullable=False, default=0)
     total_events = Column(Integer, nullable=False, default=0)
@@ -80,8 +80,8 @@ class ClubRanking(Base):
 class DepartmentRanking(Base):
     __tablename__ = "department_rankings"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    department_id = Column(UUID(as_uuid=True), ForeignKey("departments.id", ondelete="CASCADE"), unique=True, nullable=False)
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    department_id = Column(GUID(), ForeignKey("departments.id", ondelete="CASCADE"), unique=True, nullable=False)
     total_points = Column(Integer, nullable=False, default=0)
     total_students = Column(Integer, nullable=False, default=0)
     total_posts = Column(Integer, nullable=False, default=0)
@@ -100,10 +100,10 @@ class PeriodSnapshot(Base):
     """Stores pre-computed ranking snapshots for weekly/monthly/yearly."""
     __tablename__ = "period_snapshots"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
     period_type = Column(String(10), nullable=False)
     entity_type = Column(String(15), nullable=False)
-    entity_id = Column(UUID(as_uuid=True), nullable=False)
+    entity_id = Column(GUID(), nullable=False)
     period_start = Column(DateTime(timezone=True), nullable=False)
     period_end = Column(DateTime(timezone=True), nullable=False)
     points_earned = Column(Integer, nullable=False, default=0)

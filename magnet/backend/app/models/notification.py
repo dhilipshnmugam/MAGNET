@@ -4,9 +4,9 @@ from sqlalchemy import (
     Column, String, Text, Boolean, DateTime, SmallInteger,
     ForeignKey, CheckConstraint, Index
 )
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.database import Base
+from app.types import GUID
 
 
 NOTIFICATION_TYPES = (
@@ -19,14 +19,14 @@ NOTIFICATION_TYPES = (
 class Notification(Base):
     __tablename__ = "notifications"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    sender_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    user_id = Column(GUID(), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    sender_id = Column(GUID(), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     type = Column(String(30), nullable=False)
     title = Column(String(255), nullable=False)
     body = Column(Text, nullable=False)
     ref_type = Column(String(30), nullable=True)
-    ref_id = Column(UUID(as_uuid=True), nullable=True)
+    ref_id = Column(GUID(), nullable=True)
     sender_name = Column(String(255), nullable=True)
     sender_avatar = Column(Text, nullable=True)
     is_read = Column(Boolean, nullable=False, default=False)
@@ -40,7 +40,7 @@ class Notification(Base):
             f"type IN ({NOTIFICATION_TYPES})",
             name="chk_notifications_type"
         ),
-        Index("ix_notifications_user_unread", "user_id", "is_read", postgresql_where="is_read = false"),
+        Index("ix_notifications_user_unread", "user_id", "is_read"),
         Index("ix_notifications_user_created", "user_id", "created_at"),
     )
 
@@ -48,8 +48,8 @@ class Notification(Base):
 class FCMToken(Base):
     __tablename__ = "fcm_tokens"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    user_id = Column(GUID(), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     token = Column(Text, unique=True, nullable=False)
     device_info = Column(String(255), nullable=True)
     is_active = Column(Boolean, nullable=False, default=True)
@@ -61,8 +61,8 @@ class FCMToken(Base):
 class NotificationPreference(Base):
     __tablename__ = "notification_preferences"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False)
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    user_id = Column(GUID(), ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False)
     push_enabled = Column(Boolean, nullable=False, default=True)
     email_enabled = Column(Boolean, nullable=False, default=True)
     post_notifs = Column(Boolean, nullable=False, default=True)

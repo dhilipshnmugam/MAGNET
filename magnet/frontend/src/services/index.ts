@@ -36,7 +36,10 @@ export const notificationService = {
 };
 
 export const searchService = {
-  search: (q: string, limit?: number) => api.get('/search', { params: { q, limit } }),
+  search: (q: string, filter_type?: string, page?: number, limit?: number) =>
+    api.get('/search', { params: { q, filter_type: filter_type || 'all', page: page || 1, limit: limit || 5 } }),
+  suggestions: (q: string, limit?: number) =>
+    api.get('/search/suggestions', { params: { q, limit: limit || 5 } }),
 };
 
 export const uploadService = {
@@ -61,24 +64,52 @@ export const adminService = {
 };
 
 export const departmentService = {
-  list: () => api.get('/users/departments'),
-  getById: (id: string) => api.get(`/users/departments/${id}`),
-  create: (data: any) => api.post('/users/departments', data),
-  update: (id: string, data: any) => api.put(`/users/departments/${id}`, data),
-  delete: (id: string) => api.delete(`/users/departments/${id}`),
+  list: (params?: { search?: string; status?: string; page?: number; page_size?: number }) =>
+    api.get('/departments', { params }),
+  getById: (id: string) => api.get(`/departments/${id}`),
+  create: (data: any) => api.post('/departments', data),
+  update: (id: string, data: any) => api.put(`/departments/${id}`, data),
+  toggleStatus: (id: string) => api.put(`/departments/${id}/status`),
+  delete: (id: string) => api.delete(`/departments/${id}`),
+  getStats: () => api.get('/departments/stats/overview'),
 };
 
 export const clubManagementService = {
-  list: (params?: { search?: string; domain?: string; status?: string; page?: number; page_size?: number }) =>
-    api.get('/clubs', { params }),
+  list: (params?: { search?: string; category?: string; domain?: string; club_type?: string; department_id?: string; status?: string; page?: number; page_size?: number }) =>
+    api.get('/clubs/', { params }),
   getById: (id: string) => api.get(`/clubs/${id}`),
-  create: (data: any) => api.post('/clubs', data),
+  create: (data: any) => api.post('/clubs/', data),
   update: (id: string, data: any) => api.put(`/clubs/${id}`, data),
   toggleStatus: (id: string) => api.put(`/clubs/${id}/status`),
   delete: (id: string) => api.delete(`/clubs/${id}`),
   assignAdmin: (id: string, userId: string) => api.post(`/clubs/${id}/assign-admin`, { user_id: userId }),
   removeAdmin: (id: string) => api.delete(`/clubs/${id}/remove-admin`),
   getStats: () => api.get('/clubs/stats/overview'),
+  join: (id: string, message?: string) => api.post(`/clubs/${id}/join`, { message }),
+  leave: (id: string) => api.post(`/clubs/${id}/leave`),
+  getMembership: (id: string) => api.get(`/clubs/${id}/membership`),
+  getMyClubs: () => api.get('/clubs/my-clubs'),
+  getJoinRequests: (id: string, params?: { status?: string; page?: number; page_size?: number }) =>
+    api.get(`/clubs/${id}/join-requests`, { params }),
+  reviewJoinRequest: (requestId: string, status: string) =>
+    api.put(`/clubs/join-requests/${requestId}`, { status }),
+  getMembers: (id: string, params?: { page?: number; page_size?: number }) =>
+    api.get(`/clubs/${id}/members`, { params }),
+  removeMember: (clubId: string, userId: string) => api.delete(`/clubs/${clubId}/members/${userId}`),
+  getDashboard: (id: string) => api.get(`/clubs/${id}/dashboard`),
+  getDepartmentClubs: (deptId: string) => api.get(`/clubs/department/${deptId}`),
+  getEvents: (clubId: string, params?: { page?: number; page_size?: number }) =>
+    api.get(`/clubs/${clubId}/events`, { params }),
+  createEvent: (clubId: string, data: any) => api.post(`/clubs/${clubId}/events`, data),
+  deleteEvent: (clubId: string, eventId: string) => api.delete(`/clubs/${clubId}/events/${eventId}`),
+  getGallery: (clubId: string, params?: { page?: number; page_size?: number }) =>
+    api.get(`/clubs/${clubId}/gallery`, { params }),
+  addGallery: (clubId: string, data: any) => api.post(`/clubs/${clubId}/gallery`, data),
+  deleteGallery: (clubId: string, itemId: string) => api.delete(`/clubs/${clubId}/gallery/${itemId}`),
+  getAchievements: (clubId: string, params?: { page?: number; page_size?: number }) =>
+    api.get(`/clubs/${clubId}/achievements`, { params }),
+  createAchievement: (clubId: string, data: any) => api.post(`/clubs/${clubId}/achievements`, data),
+  deleteAchievement: (clubId: string, achId: string) => api.delete(`/clubs/${clubId}/achievements/${achId}`),
 };
 
 export const userService = {
@@ -88,4 +119,11 @@ export const userService = {
   updateHod: (data: any) => api.put('/users/me/hod', data),
   list: (params?: any) => api.get('/users', { params }),
   getById: (id: string) => api.get(`/users/${id}`),
+  getProfile: (id: string) => api.get(`/users/${id}/profile`),
+  follow: (id: string) => api.post(`/users/${id}/follow`),
+  unfollow: (id: string) => api.delete(`/users/${id}/follow`),
+  getFollowers: (id: string, params?: { page?: number; page_size?: number }) =>
+    api.get(`/users/${id}/followers`, { params }),
+  getFollowing: (id: string, params?: { page?: number; page_size?: number }) =>
+    api.get(`/users/${id}/following`, { params }),
 };

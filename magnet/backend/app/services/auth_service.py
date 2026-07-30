@@ -23,10 +23,18 @@ async def register_user(db: AsyncSession, data: UserRegister) -> User:
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
 
+    existing_rn = await db.execute(select(User).where(User.register_number == data.register_number))
+    if existing_rn.scalar_one_or_none():
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Register number already registered")
+
     if data.college_id:
         existing_college = await db.execute(select(Student).where(Student.college_id == data.college_id))
         if existing_college.scalar_one_or_none():
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="College ID already registered")
+
+    dept = await db.execute(select(Department).where(Department.id == data.department_id, Department.is_active == True))
+    if not dept.scalar_one_or_none():
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid or inactive department selected")
 
     is_valid, error_msg = validate_password_strength(data.password)
     if not is_valid:
@@ -38,6 +46,9 @@ async def register_user(db: AsyncSession, data: UserRegister) -> User:
         full_name=data.full_name,
         role="student",
         department_id=data.department_id,
+        year=data.year,
+        register_number=data.register_number,
+        college_name=data.college_name,
         is_verified=False,
     )
     db.add(user)
@@ -182,6 +193,41 @@ async def reset_password(db: AsyncSession, token: str, new_password: str) -> boo
     user.password_hash = hash_password(new_password)
     await db.flush()
     return True
+
+
+async def create_user_with_role(
+    db: AsyncSession,
+    email: str,
+    password: str,
+    full_name: str,
+    role: str,
+    department_id: UUID = None,
+    is_verified: bool = True,
+) -> User:
+    existing = await db.execute(select(User).where(User.email == email))
+    if existing.scalar_one_or_none():
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"Email already registered: {email}")
+
+    user = User(
+        email=email,
+        password_hash=hash_password(password),
+        full_name=full_name,
+        role=role,
+        department_id=department_id,
+        is_verified=is_verified,
+        is_active=True,
+    )
+    db.add(user)
+    await db.flush()
+    await db.refresh(user)
+
+    prefs = NotificationPreference(user_id=user.id)
+    db.add(prefs)
+    leaderboard = Leaderboard(user_id=user.id)
+    db.add(leaderboard)
+    await db.flush()
+
+    return user
 
 
 async def list_users(
