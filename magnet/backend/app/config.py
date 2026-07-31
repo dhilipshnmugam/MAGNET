@@ -41,6 +41,9 @@ class Settings(BaseSettings):
     # Frontend URL
     FRONTEND_URL: str = "http://localhost:5173"
 
+    # Uploads
+    MAX_UPLOAD_MB: int = 50
+
     @property
     def ALLOWED_ORIGINS_LIST(self) -> List[str]:
         return [o.strip() for o in self.ALLOWED_ORIGINS.split(",")]

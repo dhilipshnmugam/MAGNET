@@ -145,4 +145,15 @@ declare module 'lucide-react' {
   export const Triangle: LucideIcon;
   export const AtSign: LucideIcon;
   export const Diamond: LucideIcon;
+  export const Reply: LucideIcon;
+  export const Forward: LucideIcon;
+  export const PenSquare: LucideIcon;
+  export const BellOff: LucideIcon;
+  export const Ban: LucideIcon;
+  export const CheckCircle: LucideIcon;
+  export const Club: LucideIcon;
+  export const Pin: LucideIcon;
+  export const CheckCheck: LucideIcon;
+  export const MoreVertical: LucideIcon;
+  export const Phone: LucideIcon;
 }

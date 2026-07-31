@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
+import { useMessages } from '../../context/MessageContext';
 import { cn } from '../../utils/helpers';
 
 interface NavItem {
@@ -36,6 +37,7 @@ const roleNavItems: NavItem[] = [
 export default function Sidebar() {
   const { user, logout } = useAuth();
   const { unreadCount } = useNotifications();
+  const { unreadCount: dmUnread } = useMessages();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -81,6 +83,11 @@ export default function Sidebar() {
               {item.label === 'Notifications' && unreadCount > 0 && (
                 <span className="ml-auto hidden flex h-5 min-w-5 items-center justify-center rounded-full bg-[#ed4956] px-1.5 text-[10px] font-bold text-white group-hover:flex">
                   {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+              {item.label === 'Messages' && dmUnread > 0 && (
+                <span className="ml-auto hidden flex h-5 min-w-5 items-center justify-center rounded-full bg-[#0095f6] px-1.5 text-[10px] font-bold text-white group-hover:flex">
+                  {dmUnread > 99 ? '99+' : dmUnread}
                 </span>
               )}
             </NavLink>

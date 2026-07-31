@@ -18,7 +18,7 @@ export default function AdminSettingsPage() {
           <div className="flex items-center justify-between rounded-xl border border-gray-100 p-4 dark:border-gray-800">
             <div>
               <p className="font-medium">App Name</p>
-              <p className="text-sm text-gray-500">Magnet / UniSphere</p>
+              <p className="text-sm text-gray-500">Magnet</p>
             </div>
             <span className="text-sm text-gray-400">Read-only</span>
           </div>

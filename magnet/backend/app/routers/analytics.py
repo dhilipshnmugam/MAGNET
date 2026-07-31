@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, extract
 from typing import Optional
+from uuid import UUID
 from datetime import datetime, timedelta, date
 from app.dependencies import get_db, get_current_user
 from app.models.user import User
@@ -10,6 +11,8 @@ from app.models.activity import UserActivity
 from app.models.points import Point
 from app.models.project import Project, ProjectMember
 from app.models.club import ClubMember
+from app.schemas.common import ResponseModel
+from app.services import analytics_engine
 
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
 
@@ -192,3 +195,90 @@ async def get_analytics_trends(
             {"date": str(r.date), "count": r.count} for r in rows
         ],
     }
+
+
+@router.get("/student-growth")
+async def get_student_growth(
+    months: Optional[int] = Query(12),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    data = await analytics_engine.student_growth(db, months or 12)
+    return ResponseModel(data=data)
+
+
+@router.get("/activity-graph")
+async def get_activity_graph(
+    days: Optional[int] = Query(30),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    data = await analytics_engine.activity_graph(db, days or 30)
+    return ResponseModel(data=data)
+
+
+@router.get("/event-participation")
+async def get_event_participation(
+    months: Optional[int] = Query(6),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    data = await analytics_engine.event_participation(db, months or 6)
+    return ResponseModel(data=data)
+
+
+@router.get("/monthly-statistics")
+async def get_monthly_statistics(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    data = await analytics_engine.monthly_statistics(db)
+    return ResponseModel(data=data)
+
+
+@router.get("/department-performance")
+async def get_department_performance(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    data = await analytics_engine.department_performance(db)
+    return ResponseModel(data=data)
+
+
+@router.get("/club-performance")
+async def get_club_performance(
+    department_id: Optional[str] = Query(None),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    dept_uuid = UUID(department_id) if department_id else None
+    data = await analytics_engine.club_performance(db, dept_uuid)
+    return ResponseModel(data=data)
+
+
+@router.get("/hod-dashboard")
+async def get_hod_dashboard(
+    department_id: str = Query(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    data = await analytics_engine.hod_dashboard(db, UUID(department_id))
+    return ResponseModel(data=data)
+
+
+@router.get("/hod-self-dashboard")
+async def get_hod_self_dashboard(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    data = await analytics_engine.hod_self_dashboard(db, current_user.id)
+    return ResponseModel(data=data)
+
+
+@router.get("/principal-dashboard")
+async def get_principal_dashboard(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    data = await analytics_engine.principal_dashboard(db)
+    return ResponseModel(data=data)

@@ -7,7 +7,7 @@ from app.models.activity import UserActivity
 from app.models.post import Post, PostMedia, PostImage, Like, Bookmark, PostShare, Hashtag, PostHashtag
 from app.models.comment import Comment
 from app.models.channel import Channel, ChannelMember, ChannelMessage
-from app.models.message import DirectMessage
+from app.models.message import DirectMessage, Conversation, ConversationParticipant, MessageAttachment, MessageReaction, BlockedUser
 from app.models.announcement import Announcement
 from app.models.event import Event, RSVP
 from app.models.notification import Notification, FCMToken, NotificationPreference
@@ -25,7 +25,7 @@ __all__ = [
     "Post", "PostMedia", "PostImage", "Like", "Bookmark", "PostShare", "Hashtag", "PostHashtag",
     "Comment",
     "Channel", "ChannelMember", "ChannelMessage",
-    "DirectMessage",
+    "DirectMessage", "Conversation", "ConversationParticipant", "MessageAttachment", "MessageReaction", "BlockedUser",
     "Announcement",
     "Event", "RSVP",
     "Notification", "FCMToken", "NotificationPreference",

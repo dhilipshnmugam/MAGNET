@@ -3,6 +3,7 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { NotificationProvider } from './context/NotificationContext';
+import { MessageProvider } from './context/MessageContext';
 import { ProtectedRoute, PublicRoute } from './components/common/ProtectedRoute';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import Layout from './components/layout/Layout';
@@ -55,7 +56,8 @@ export default function App() {
       <ThemeProvider>
         <AuthProvider>
           <NotificationProvider>
-            <ErrorBoundary>
+            <MessageProvider>
+              <ErrorBoundary>
               <Routes>
                 {/* Public Routes */}
                 <Route path="/" element={<PortalSelectPage />} />
@@ -152,6 +154,7 @@ export default function App() {
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </ErrorBoundary>
+            </MessageProvider>
             <Toaster
               position="top-right"
               toastOptions={{

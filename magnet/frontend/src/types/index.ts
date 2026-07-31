@@ -176,24 +176,96 @@ export interface ChannelMessage {
   created_at: string;
 }
 
+export type MessageType = 'text' | 'image' | 'video' | 'audio' | 'file' | 'link' | 'post' | 'deleted';
+
+export interface MessageAttachment {
+  id: string;
+  file_type: 'image' | 'video' | 'audio' | 'pdf' | 'gif' | 'document' | 'file';
+  file_url: string;
+  file_name?: string | null;
+  file_size?: number | null;
+  mime_type?: string | null;
+  duration?: number | null;
+  width?: number | null;
+  height?: number | null;
+}
+
+export interface MessageReaction {
+  id: string;
+  user_id: string;
+  emoji: string;
+}
+
+export interface MessageReplyPreview {
+  id: string;
+  content: string | null;
+  message_type: string;
+  sender_name?: string | null;
+}
+
 export interface Message {
   id: string;
+  conversation_id?: string | null;
   sender_id: string;
   receiver_id: string;
   content: string | null;
-  image_url: string | null;
+  image_url?: string | null;
+  message_type: MessageType;
+  reply_to_id?: string | null;
+  forwarded_from_id?: string | null;
+  is_forwarded?: boolean;
+  is_edited?: boolean;
+  is_starred?: boolean;
+  is_pinned?: boolean;
   is_read: boolean;
   is_deleted: boolean;
+  deleted_for_me?: boolean;
+  share_type?: string | null;
+  share_id?: string | null;
+  share_preview?: any | null;
+  link_title?: string | null;
+  link_description?: string | null;
+  link_image?: string | null;
+  delivered_at?: string | null;
+  edited_at?: string | null;
   created_at: string;
+  attachments?: MessageAttachment[];
+  reactions?: MessageReaction[];
+  reply_to?: MessageReplyPreview | null;
 }
 
 export interface Conversation {
+  conversation_id?: string;
   other_user_id: string;
   other_user_name: string;
   other_user_avatar: string | null;
+  other_user_role?: string | null;
+  other_user_register_number?: string | null;
+  other_user_department?: string | null;
   last_message: string | null;
+  last_message_type?: string | null;
   last_message_at: string | null;
   unread_count: number;
+  is_pinned?: boolean;
+  is_archived?: boolean;
+  is_muted?: boolean;
+  is_online?: boolean;
+  last_seen_at?: string | null;
+}
+
+export interface UserSearchResult {
+  id: string;
+  full_name: string;
+  email?: string | null;
+  role?: string | null;
+  avatar_url?: string | null;
+  register_number?: string | null;
+  department_name?: string | null;
+  department_code?: string | null;
+  year?: string | null;
+  is_online: boolean;
+  is_blocked?: boolean;
+  has_conversation?: boolean;
 }
 
 export interface Announcement {

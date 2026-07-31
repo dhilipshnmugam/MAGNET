@@ -336,7 +336,7 @@ export default function CreateClubPage() {
               <input type="email" required value={form.admin_email}
                 onChange={(e) => updateForm('admin_email', e.target.value)}
                 className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm focus:border-sky-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800"
-                placeholder="admin@unisphere.com" />
+                placeholder="admin@magnet.com" />
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium">Admin Password *</label>

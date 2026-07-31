@@ -16,7 +16,7 @@ from app.schemas.channel import (
     ChannelMessageCreate, ChannelMessageOut
 )
 from app.schemas.message import (
-    MessageCreate, MessageOut, ConversationOut, WebSocketMessage
+    MessageCreate, MessageOut, MessageUpdate, ConversationOut, ConversationParticipantOut
 )
 from app.schemas.announcement import AnnouncementCreate, AnnouncementOut
 from app.schemas.event import EventCreate, EventUpdate, EventOut, RSVPCreate, RSVOUt

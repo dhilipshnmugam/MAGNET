@@ -3,13 +3,15 @@ import {
   Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Trash2, Share2,
   Eye, MapPin, Trophy, Calendar, Clock, BookOpen, Users, Briefcase,
   Lightbulb, Download, ExternalLink, ChevronDown, ChevronUp, Hash,
-  Flag, BarChart3, Copy, Check, UserPlus,
+  Flag, BarChart3, Copy, Check, UserPlus, Search, X, Loader2,
 } from 'lucide-react';
 import { Post } from '../../types';
 import { useAuth } from '../../context/AuthContext';
-import { postService } from '../../services';
+import { postService, messageService } from '../../services';
 import { timeAgo, cn } from '../../utils/helpers';
 import Avatar from '../common/Avatar';
+import Modal from '../common/Modal';
+import { getApiError } from '../../services/api';
 import toast from 'react-hot-toast';
 
 interface PostCardProps {
@@ -163,6 +165,11 @@ export default function PostCard({ post, onDelete }: PostCardProps) {
   const [hasMoreComments, setHasMoreComments] = useState(true);
   const [loadingComments, setLoadingComments] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareQ, setShareQ] = useState('');
+  const [shareResults, setShareResults] = useState<any[]>([]);
+  const [shareLoading, setShareLoading] = useState(false);
+  const [shareSending, setShareSending] = useState(false);
 
   const typeConfig = POST_TYPE_CONFIG[post.post_type] || POST_TYPE_CONFIG.general;
 
@@ -191,15 +198,45 @@ export default function PostCard({ post, onDelete }: PostCardProps) {
     try {
       const res = await postService.share(post.id);
       setShareCount(res.data.data.share_count);
-      if (navigator.share) {
-        navigator.share({ title: post.title || 'UniSphere Post', text: post.content.slice(0, 200), url: window.location.href });
-      } else {
-        navigator.clipboard.writeText(window.location.href);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-        toast.success('Link copied to clipboard');
-      }
+      setShowShareModal(true);
     } catch {}
+  };
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      toast.success('Link copied to clipboard');
+    } catch {}
+  };
+
+  const sendToDm = async (userId: string, userName: string) => {
+    setShareSending(true);
+    try {
+      await messageService.sharePost(userId, post.id, post.content.slice(0, 200));
+      toast.success(`Post sent to ${userName}`);
+      setShowShareModal(false);
+      setShareQ('');
+      setShareResults([]);
+    } catch (e) {
+      toast.error(getApiError(e));
+    } finally {
+      setShareSending(false);
+    }
+  };
+
+  const loadShareRecipients = async (q: string) => {
+    if (!q.trim()) { setShareResults([]); return; }
+    setShareLoading(true);
+    try {
+      const res = await messageService.searchUsers(q, 8);
+      setShareResults((res.data.data || []).filter((u: any) => u.id !== user?.id));
+    } catch {
+      setShareResults([]);
+    } finally {
+      setShareLoading(false);
+    }
   };
 
   const handleDelete = async () => {
@@ -593,6 +630,49 @@ export default function PostCard({ post, onDelete }: PostCardProps) {
           </div>
         </div>
       )}
+
+      {/* Share to DM modal */}
+      <Modal isOpen={showShareModal} onClose={() => { setShowShareModal(false); setShareQ(''); setShareResults([]); }} title="Share post" size="sm">
+        <button
+          onClick={() => { handleCopyLink(); setShowShareModal(false); }}
+          className="mb-3 flex w-full items-center gap-3 rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+        >
+          <Copy className="h-4 w-4 text-gray-500" /> Copy link
+        </button>
+        <div className="relative">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+          <input
+            autoFocus
+            value={shareQ}
+            onChange={(e) => { setShareQ(e.target.value); loadShareRecipients(e.target.value); }}
+            placeholder="Send to a person..."
+            className="input w-full pl-9"
+          />
+        </div>
+        <div className="mt-2 max-h-64 overflow-y-auto">
+          {shareLoading && (
+            <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-[#0095f6]" /></div>
+          )}
+          {!shareLoading && shareQ && shareResults.length === 0 && (
+            <p className="py-6 text-center text-sm text-gray-400">No people found</p>
+          )}
+          {shareResults.map((u) => (
+            <button
+              key={u.id}
+              disabled={shareSending}
+              onClick={() => sendToDm(u.id, u.full_name)}
+              className="flex w-full items-center gap-3 rounded-xl p-2.5 text-left transition-colors hover:bg-gray-50 disabled:opacity-60 dark:hover:bg-gray-800"
+            >
+              <Avatar src={u.avatar_url} name={u.full_name} />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{u.full_name}</p>
+                <p className="truncate text-xs text-gray-500">{[u.role, u.department_name].filter(Boolean).join(' · ')}</p>
+              </div>
+              {shareSending ? <Loader2 className="h-4 w-4 animate-spin text-[#0095f6]" /> : <Send className="h-4 w-4 text-[#0095f6]" />}
+            </button>
+          ))}
+        </div>
+      </Modal>
     </article>
   );
 }

@@ -190,7 +190,7 @@ export default function FeedPage() {
 
         {/* Footer */}
         <div className="px-2 text-[11px] text-gray-400 dark:text-gray-600">
-          <p>UniSphere Campus Platform</p>
+          <p>Magnet Campus Platform</p>
           <p className="mt-1">Terms · Privacy · Help · About</p>
         </div>
       </div>

@@ -29,21 +29,29 @@ logger = logging.getLogger("magnet")
 
 
 async def _create_fixed_accounts():
-    """Auto-create Principal and Super Admin accounts if they don't exist."""
+    """Auto-create Principal and Super Admin accounts if they don't exist.
+    Also migrates legacy @unisphere.com accounts to @magnet.com so the same
+    account rows (password hashes, relationships) are preserved — no duplicates.
+    """
     from app.database import AsyncSessionLocal
     from app.models.user import User
     from app.utils.security import hash_password
     from sqlalchemy import select
 
+    LEGACY_EMAILS = {
+        "principal": "principal@unisphere.com",
+        "super_admin": "admin@unisphere.com",
+    }
+
     FIXED_ACCOUNTS = [
         {
-            "email": "principal@unisphere.com",
+            "email": "principal@magnet.com",
             "password": "Principal@123",
             "full_name": "Principal",
             "role": "principal",
         },
         {
-            "email": "admin@unisphere.com",
+            "email": "admin@magnet.com",
             "password": "Admin@123",
             "full_name": "Super Admin",
             "role": "super_admin",
@@ -52,6 +60,27 @@ async def _create_fixed_accounts():
 
     async with AsyncSessionLocal() as db:
         for account in FIXED_ACCOUNTS:
+            legacy_email = LEGACY_EMAILS.get(account["role"])
+            if legacy_email:
+                legacy = (
+                    await db.execute(select(User).where(User.email == legacy_email))
+                ).scalar_one_or_none()
+                if legacy:
+                    conflicting = (
+                        await db.execute(select(User).where(User.email == account["email"]))
+                    ).scalar_one_or_none()
+                    if conflicting and conflicting.id != legacy.id:
+                        legacy.is_active = False
+                        logger.warning(
+                            f"Deactivated duplicate legacy account {legacy_email} "
+                            f"(magnet account already exists)"
+                        )
+                    else:
+                        legacy.email = account["email"]
+                        logger.info(f"Migrated legacy account {legacy_email} -> {account['email']}")
+                    await db.commit()
+                    continue
+
             result = await db.execute(select(User).where(User.email == account["email"]))
             existing = result.scalar_one_or_none()
             if not existing:
@@ -442,6 +471,13 @@ async def lifespan(app: FastAPI):
         import app.models  # noqa: F401 — ensure all models are registered
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+            try:
+                from app.migrations import run_migrations
+                changes = await run_migrations(conn)
+                if changes:
+                    logger.info(f"Applied {changes} schema migration change(s)")
+            except Exception as me:
+                logger.warning(f"Schema migrations failed (continuing): {me}")
         logger.info("Database tables created/verified")
     except Exception as e:
         logger.error(f"Failed to create tables: {e}")

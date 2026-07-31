@@ -27,6 +27,7 @@ class User(Base):
     is_verified = Column(Boolean, nullable=False, default=False)
     is_active = Column(Boolean, nullable=False, default=True, index=True)
     last_login_at = Column(DateTime(timezone=True), nullable=True)
+    last_seen_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
     updated_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -41,6 +42,10 @@ class User(Base):
     channel_memberships = relationship("ChannelMember", back_populates="user", cascade="all, delete-orphan")
     sent_messages = relationship("DirectMessage", back_populates="sender", foreign_keys="DirectMessage.sender_id")
     received_messages = relationship("DirectMessage", back_populates="receiver", foreign_keys="DirectMessage.receiver_id")
+    conversation_participations = relationship("ConversationParticipant", back_populates="user", cascade="all, delete-orphan")
+    message_reactions = relationship("MessageReaction", back_populates="user", cascade="all, delete-orphan")
+    blocking = relationship("BlockedUser", back_populates="blocker", foreign_keys="BlockedUser.blocker_id", cascade="all, delete-orphan")
+    blocked_by = relationship("BlockedUser", back_populates="blocked", foreign_keys="BlockedUser.blocked_id", cascade="all, delete-orphan")
     announcements = relationship("Announcement", back_populates="author", cascade="all, delete-orphan")
     created_events = relationship("Event", back_populates="creator", foreign_keys="Event.creator_id")
     rsvps = relationship("RSVP", back_populates="user", cascade="all, delete-orphan")

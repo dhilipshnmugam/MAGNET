@@ -166,7 +166,7 @@ export default function CreateDepartmentPage() {
                 <div>
                   <label className={labelCls}>Email *</label>
                   <input type="email" required value={form.hod_email} onChange={(e) => update('hod_email', e.target.value)}
-                    className={inputCls} placeholder="hod@unisphere.com" />
+                    className={inputCls} placeholder="hod@magnet.com" />
                 </div>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -220,7 +220,7 @@ export default function CreateDepartmentPage() {
               <div>
                 <label className={labelCls}>Login Email *</label>
                 <input type="email" required value={form.hod_email} onChange={(e) => update('hod_email', e.target.value)}
-                  className={inputCls} placeholder="hod@unisphere.com" disabled />
+                  className={inputCls} placeholder="hod@magnet.com" disabled />
                 <p className="mt-1 text-xs text-gray-400">Same as HOD email from previous step</p>
               </div>
               <div>
