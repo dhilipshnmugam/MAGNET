@@ -1,16 +1,20 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { userService, uploadService, postService, leaderboardService } from '../services';
+import { userService, uploadService, postService } from '../services';
 import Avatar from '../components/common/Avatar';
 import { ProfileSkeleton } from '../components/common/Skeleton';
 import PostCard from '../components/feed/PostCard';
 import PostCreator from '../components/feed/PostCreator';
+import ClubsTab from '../components/profile/ClubsTab';
+import ProjectsTab from '../components/profile/ProjectsTab';
+import AnalyticsTab from '../components/profile/AnalyticsTab';
+import AchievementsTab from '../components/profile/AchievementsTab';
 import toast from 'react-hot-toast';
 import {
-  Camera, Share2, Grid3X3, Bookmark, Award, Calendar, TrendingUp, Users,
-  Edit3, BarChart3, Plus, Clock, Trophy, UserPlus, Check, Mail,
-  GraduationCap, MapPin, BadgeCheck, Briefcase, Building2, ExternalLink,
+  Camera, Share2, Grid3X3, Award, Users,
+  Edit3, BarChart3, Plus, Clock, UserPlus, Check,
+  GraduationCap, MapPin, BadgeCheck, Briefcase, Building2, Code,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import type { Post } from '../types';
@@ -34,7 +38,7 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
-  const [activeTab, setActiveTab] = useState<'posts' | 'saved' | 'achievements' | 'analytics'>('posts');
+  const [activeTab, setActiveTab] = useState<'posts' | 'clubs' | 'projects' | 'analytics' | 'achievements'>('posts');
   const [isEditing, setIsEditing] = useState(false);
   const [showCreator, setShowCreator] = useState(false);
 
@@ -49,9 +53,6 @@ export default function ProfilePage() {
   const [followLoading, setFollowLoading] = useState(false);
 
   const [posts, setPosts] = useState<Post[]>([]);
-  const [savedPosts, setSavedPosts] = useState<Post[]>([]);
-  const [rankData, setRankData] = useState<any>(null);
-  const [campusScore, setCampusScore] = useState(0);
 
   const [form, setForm] = useState({ full_name: '', bio: '' });
   const [studentForm, setStudentForm] = useState({ phone: '', section: '' });
@@ -78,21 +79,13 @@ export default function ProfilePage() {
     if (authStudent) setStudentForm({ phone: authStudent.phone || '', section: authStudent.section || '' });
 
     try {
-      const [postsRes, savedRes, rankRes] = await Promise.allSettled([
+      const postsRes = await Promise.allSettled([
         postService.getFeed({ filter_type: 'my_posts', page: 1, page_size: 50 }),
-        postService.getSavedPosts({ page: 1, page_size: 50 }),
-        leaderboardService.getMyRanking(),
       ]);
-      if (postsRes.status === 'fulfilled') {
-        const p = postsRes.value.data.data || [];
+      if (postsRes[0].status === 'fulfilled') {
+        const p = postsRes[0].value.data.data || [];
         setPosts(p);
         setPostCount(p.length);
-      }
-      if (savedRes.status === 'fulfilled') setSavedPosts(savedRes.value.data.data || []);
-      if (rankRes.status === 'fulfilled') {
-        const r = rankRes.value.data.data;
-        setRankData(r);
-        setCampusScore(r.total_points || 0);
       }
     } catch {} finally { setLoading(false); }
   };
@@ -317,8 +310,9 @@ export default function ProfilePage() {
         <div className="flex overflow-x-auto border-b border-gray-200 dark:border-gray-800 scrollbar-hide">
           {[
             { key: 'posts' as const, label: isOwn ? 'My Posts' : 'Posts', icon: Grid3X3 },
+            { key: 'clubs' as const, label: 'Clubs', icon: Users },
             ...(isOwn ? [
-              { key: 'saved' as const, label: 'Saved', icon: Bookmark },
+              { key: 'projects' as const, label: 'Projects', icon: Code },
               { key: 'analytics' as const, label: 'Analytics', icon: BarChart3 },
             ] : []),
             { key: 'achievements' as const, label: 'Achievements', icon: Award },
@@ -359,59 +353,27 @@ export default function ProfilePage() {
             </div>
           )}
 
-          {activeTab === 'saved' && isOwn && (
+          {activeTab === 'clubs' && (
             <div className="animate-fade-in">
-              {savedPosts.length === 0 ? (
-                <div className="py-16 text-center">
-                  <Bookmark className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600" />
-                  <p className="mt-3 text-sm font-medium text-gray-500">No saved posts</p>
-                  <p className="text-xs text-gray-400">Posts you bookmark will appear here</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {savedPosts.map((post) => (
-                    <PostCard key={post.id} post={post} />
-                  ))}
-                </div>
-              )}
+              <ClubsTab userId={authUser?.id} />
+            </div>
+          )}
+
+          {activeTab === 'projects' && isOwn && (
+            <div className="animate-fade-in">
+              <ProjectsTab userId={authUser?.id} />
             </div>
           )}
 
           {activeTab === 'analytics' && isOwn && (
-            <div className="animate-fade-in space-y-6">
-              {rankData && (
-                <div className="rounded-xl border border-gray-200 p-5 dark:border-gray-700">
-                  <h3 className="mb-4 font-semibold">Campus Score Breakdown</h3>
-                  <div className="space-y-3">
-                    {[
-                      { label: 'All-Time Points', value: rankData.all_time_points || 0, max: 5000 },
-                      { label: 'Weekly Points', value: rankData.weekly_points || 0, max: 500 },
-                      { label: 'Monthly Points', value: rankData.monthly_points || 0, max: 2000 },
-                    ].map((item) => (
-                      <div key={item.label}>
-                        <div className="mb-1 flex items-center justify-between text-sm">
-                          <span className="text-gray-600 dark:text-gray-400">{item.label}</span>
-                          <span className="font-bold">{item.value.toLocaleString()}</span>
-                        </div>
-                        <div className="h-2 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
-                          <div className="h-full rounded-full bg-gradient-to-r from-[#0095f6] to-indigo-500" style={{ width: `${Math.min((item.value / item.max) * 100, 100)}%` }} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              <div className="rounded-xl border border-gray-200 p-5 dark:border-gray-700">
-                <h3 className="mb-2 font-semibold">Total Score</h3>
-                <p className="text-3xl font-bold text-[#0095f6]">{campusScore.toLocaleString()}</p>
-              </div>
+            <div className="animate-fade-in">
+              <AnalyticsTab userId={authUser?.id} />
             </div>
           )}
 
           {activeTab === 'achievements' && (
-            <div className="animate-fade-in py-16 text-center">
-              <Trophy className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600" />
-              <p className="mt-3 text-sm font-medium text-gray-500">Achievements coming soon</p>
+            <div className="animate-fade-in">
+              <AchievementsTab userId={viewingUserId} />
             </div>
           )}
         </div>

@@ -15,7 +15,8 @@ from app.routers import (
     auth_router, users_router, posts_router, messages_router,
     channels_router, announcements_router, events_router,
     notifications_router, search_router, upload_router, admin_router,
-    leaderboard_router, analytics_router, clubs_router, club_content_router, departments_router
+    leaderboard_router, analytics_router, clubs_router, club_content_router, departments_router,
+    projects_router, club_roles_router
 )
 from app.websockets.handlers import router as ws_router
 from app.utils.firebase import initialize_firebase
@@ -309,6 +310,125 @@ async def _seed_departments():
         await db.commit()
 
 
+DEFAULT_CLUBS = [
+    {
+        "name": "Sports Club",
+        "club_code": "SPORTS",
+        "description": "Organizes sports events, tournaments, fitness activities and promotes teamwork.",
+        "category": "Sports",
+    },
+    {
+        "name": "Coding Club",
+        "club_code": "CODING",
+        "description": "Programming, hackathons, coding contests, software development and open-source projects.",
+        "category": "Technology",
+    },
+    {
+        "name": "AI & Research Club",
+        "club_code": "AI_RESEARCH",
+        "description": "Artificial Intelligence, Machine Learning, Data Science, Research Papers and Innovation.",
+        "category": "Research",
+    },
+    {
+        "name": "Cultural Club",
+        "club_code": "CULTURAL",
+        "description": "Dance, Music, Drama, Fine Arts, College Cultural Events and Talent Shows.",
+        "category": "Arts & Culture",
+    },
+    {
+        "name": "Photography Club",
+        "club_code": "PHOTOGRAPHY",
+        "description": "Photography, Videography, Event Coverage, Editing and Creative Media.",
+        "category": "Media",
+    },
+    {
+        "name": "Entrepreneurship Club",
+        "club_code": "ENTREPRENEUR",
+        "description": "Startups, Business Ideas, Innovation, Leadership and Entrepreneurship.",
+        "category": "Business",
+    },
+    {
+        "name": "NSS / Social Service Club",
+        "club_code": "NSS",
+        "description": "Community service, awareness programs, volunteering and social responsibility.",
+        "category": "Social Service",
+    },
+    {
+        "name": "Robotics Club",
+        "club_code": "ROBOTICS",
+        "description": "Robotics, IoT, Embedded Systems, Electronics and Hardware Projects.",
+        "category": "Engineering",
+    },
+    {
+        "name": "Literature Club",
+        "club_code": "LITERATURE",
+        "description": "Reading, Writing, Debates, Public Speaking and Creative Literature.",
+        "category": "Education",
+    },
+    {
+        "name": "Environment Club",
+        "club_code": "ENVIRONMENT",
+        "description": "Tree Plantation, Sustainability, Green Campus, Cleanliness Drives and Environmental Awareness.",
+        "category": "Environment",
+    },
+]
+
+
+async def _seed_default_clubs():
+    """Create default clubs if they don't already exist."""
+    from app.database import AsyncSessionLocal
+    from app.models.club import Club, ClubMember
+    from app.models.user import User
+    from sqlalchemy import select
+    import uuid
+
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(select(User).where(User.role == "super_admin").limit(1))
+        admin = result.scalar_one_or_none()
+        if not admin:
+            logger.warning("No super_admin found, cannot seed clubs")
+            return
+
+        created = 0
+        skipped = 0
+        for club_data in DEFAULT_CLUBS:
+            existing = await db.execute(
+                select(Club).where(
+                    (Club.club_code == club_data["club_code"]) | (Club.name == club_data["name"])
+                ).limit(1)
+            )
+            if existing.scalar_one_or_none():
+                skipped += 1
+                continue
+
+            club = Club(
+                name=club_data["name"],
+                club_code=club_data["club_code"],
+                description=club_data["description"],
+                category=club_data["category"],
+                owner_id=admin.id,
+                created_by=admin.id,
+                approval_mode="manual",
+                is_active=True,
+                status="active",
+            )
+            db.add(club)
+            await db.flush()
+            await db.refresh(club)
+
+            member = ClubMember(
+                club_id=club.id,
+                user_id=admin.id,
+                role="owner",
+            )
+            db.add(member)
+            created += 1
+            logger.info(f"Created club: {club.name}")
+
+        await db.commit()
+        logger.info(f"Default clubs seeded: {created} created, {skipped} skipped")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info(f"Starting {settings.APP_NAME} v{settings.APP_VERSION}")
@@ -335,6 +455,11 @@ async def lifespan(app: FastAPI):
         logger.info("Departments seeded")
     except Exception as e:
         logger.error(f"Failed to seed departments: {e}")
+    try:
+        await _seed_default_clubs()
+        logger.info("Default clubs seeded")
+    except Exception as e:
+        logger.error(f"Failed to seed default clubs: {e}")
     yield
     logger.info("Shutting down...")
 
@@ -369,6 +494,8 @@ app.include_router(leaderboard_router, prefix="/api/v1")
 app.include_router(analytics_router, prefix="/api/v1")
 app.include_router(clubs_router, prefix="/api/v1")
 app.include_router(club_content_router, prefix="/api/v1")
+app.include_router(club_roles_router, prefix="/api/v1")
+app.include_router(projects_router, prefix="/api/v1")
 app.include_router(departments_router, prefix="/api/v1")
 app.include_router(ws_router, prefix="/api/v1")
 

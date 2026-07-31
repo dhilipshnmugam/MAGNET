@@ -62,6 +62,8 @@ class ClubMember(Base):
 
     club = relationship("Club", back_populates="members")
     user = relationship("User", back_populates="club_memberships")
+    roles = relationship("ClubRole", back_populates="member", cascade="all, delete-orphan")
+    assignments = relationship("ClubAssignment", back_populates="member", cascade="all, delete-orphan")
 
     __table_args__ = (
         UniqueConstraint("club_id", "user_id", name="uq_club_members_club_user"),

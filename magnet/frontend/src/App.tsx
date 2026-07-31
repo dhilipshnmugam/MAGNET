@@ -46,6 +46,8 @@ import PrincipalClubsPage from './pages/principal/PrincipalClubsPage';
 import PrincipalAnnouncementsPage from './pages/principal/PrincipalAnnouncementsPage';
 import PrincipalLeaderboardPage from './pages/principal/PrincipalLeaderboardPage';
 import PrincipalReportsPage from './pages/principal/PrincipalReportsPage';
+import ProjectDetailPage from './pages/ProjectDetailPage';
+import ProjectCreatePage from './pages/ProjectCreatePage';
 
 export default function App() {
   return (
@@ -130,6 +132,20 @@ export default function App() {
                 <Route
                   path="/principal/reports"
                   element={<ProtectedRoute roles={['principal']}><Layout><PrincipalReportsPage /></Layout></ProtectedRoute>}
+                />
+
+                {/* Projects */}
+                <Route
+                  path="/projects"
+                  element={<ProtectedRoute roles={['student', 'department_admin', 'super_admin', 'club_admin', 'principal']}><Layout><ProfilePage /></Layout></ProtectedRoute>}
+                />
+                <Route
+                  path="/projects/new"
+                  element={<ProtectedRoute roles={['student', 'department_admin', 'super_admin', 'club_admin', 'principal']}><Layout><ProjectCreatePage /></Layout></ProtectedRoute>}
+                />
+                <Route
+                  path="/projects/:projectId"
+                  element={<ProtectedRoute roles={['student', 'department_admin', 'super_admin', 'club_admin', 'principal']}><Layout><ProjectDetailPage /></Layout></ProtectedRoute>}
                 />
 
                 {/* Fallback */}

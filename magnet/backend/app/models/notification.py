@@ -12,7 +12,9 @@ from app.types import GUID
 NOTIFICATION_TYPES = (
     "'post', 'like', 'comment', 'mention', 'event', 'event_reminder',"
     "'approval', 'rejected', 'leaderboard', 'message', 'announcement',"
-    "'channel_invite', 'system'"
+    "'channel_invite', 'system',"
+    "'project_invite', 'project_join', 'task_assigned', 'task_completed',"
+    "'project_updated'"
 )
 
 

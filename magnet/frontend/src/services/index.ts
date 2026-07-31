@@ -112,6 +112,49 @@ export const clubManagementService = {
   deleteAchievement: (clubId: string, achId: string) => api.delete(`/clubs/${clubId}/achievements/${achId}`),
 };
 
+export const analyticsService = {
+  overview: () => api.get('/analytics/overview'),
+  postAnalytics: () => api.get('/analytics/posts'),
+  heatmap: (year?: number) => api.get('/analytics/heatmap', { params: { year } }),
+  logActivity: (data: { type?: string; count?: number; hours?: number }) => api.post('/analytics/activity/log', data),
+  trends: (period?: string) => api.get('/analytics/trends', { params: { period } }),
+};
+
+export const projectService = {
+  list: (params?: { category?: string; status?: string; search?: string; page?: number; per_page?: number }) =>
+    api.get('/projects/', { params }),
+  myProjects: () => api.get('/projects/my'),
+  getById: (id: string) => api.get(`/projects/${id}`),
+  create: (data: any) => api.post('/projects/', data),
+  update: (id: string, data: any) => api.put(`/projects/${id}`, data),
+  delete: (id: string) => api.delete(`/projects/${id}`),
+  invite: (id: string, userId: string) => api.post(`/projects/${id}/invite`, { user_id: userId }),
+  join: (id: string) => api.post(`/projects/${id}/join`),
+  respondInvitation: (invitationId: string, action: string) =>
+    api.post(`/projects/invitations/${invitationId}/respond`, { action }),
+  updateMemberRole: (projectId: string, memberId: string, role: string) =>
+    api.put(`/projects/${projectId}/members/${memberId}`, { role }),
+  removeMember: (projectId: string, memberId: string) =>
+    api.delete(`/projects/${projectId}/members/${memberId}`),
+  createTask: (projectId: string, data: any) => api.post(`/projects/${projectId}/tasks`, data),
+  updateTask: (projectId: string, taskId: string, data: any) =>
+    api.put(`/projects/${projectId}/tasks/${taskId}`, data),
+  deleteTask: (projectId: string, taskId: string) =>
+    api.delete(`/projects/${projectId}/tasks/${taskId}`),
+};
+
+export const clubRoleService = {
+  listRoles: (clubId: string) => api.get(`/clubs/${clubId}/roles`),
+  addRole: (clubId: string, memberId: string, role: string) =>
+    api.post(`/clubs/${clubId}/members/${memberId}/roles`, { role }),
+  removeRole: (clubId: string, memberId: string, roleId: string) =>
+    api.delete(`/clubs/${clubId}/members/${memberId}/roles/${roleId}`),
+  listAssignments: (clubId: string) => api.get(`/clubs/${clubId}/assignments`),
+  createAssignment: (clubId: string, data: any) => api.post(`/clubs/${clubId}/assignments`, data),
+  updateAssignment: (clubId: string, assignmentId: string, data: any) =>
+    api.put(`/clubs/${clubId}/assignments/${assignmentId}`, data),
+};
+
 export const userService = {
   getMe: () => api.get('/users/me'),
   updateMe: (data: any) => api.put('/users/me', data),
