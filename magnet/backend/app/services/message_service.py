@@ -61,12 +61,23 @@ async def _reply_preview(db: AsyncSession, reply_to_id: UUID | None) -> dict | N
 
 
 async def serialize_message(db: AsyncSession, msg: DirectMessage, current_user: User) -> dict:
+    sender = await db.get(User, msg.sender_id) if msg.sender_id else None
+    receiver = await db.get(User, msg.receiver_id) if msg.receiver_id else None
+    sender_name = sender.full_name if sender else None
+    sender_avatar = sender.avatar_url if sender else None
+    receiver_name = receiver.full_name if receiver else None
+    receiver_avatar = receiver.avatar_url if receiver else None
+
     deleted_for = msg.deleted_for_ids
     if msg.is_deleted or current_user.id in deleted_for:
         return {
             "id": str(msg.id),
             "sender_id": str(msg.sender_id),
             "receiver_id": str(msg.receiver_id),
+            "sender_name": sender_name,
+            "sender_avatar": sender_avatar,
+            "receiver_name": receiver_name,
+            "receiver_avatar": receiver_avatar,
             "conversation_id": str(msg.conversation_id) if msg.conversation_id else None,
             "content": None,
             "image_url": None,
@@ -124,6 +135,10 @@ async def serialize_message(db: AsyncSession, msg: DirectMessage, current_user: 
         "id": str(msg.id),
         "sender_id": str(msg.sender_id),
         "receiver_id": str(msg.receiver_id),
+        "sender_name": sender_name,
+        "sender_avatar": sender_avatar,
+        "receiver_name": receiver_name,
+        "receiver_avatar": receiver_avatar,
         "conversation_id": str(msg.conversation_id) if msg.conversation_id else None,
         "content": msg.content,
         "image_url": msg.image_url,
@@ -467,6 +482,16 @@ async def _push_ws(user_id: UUID, payload: dict):
         logger.warning(f"WS push failed: {e}")
 
 
+async def _push_other(db: AsyncSession, message: DirectMessage, exclude_user_id: UUID, payload: dict):
+    try:
+        conv = await db.get(Conversation, message.conversation_id) if message.conversation_id else None
+        other = await _other_user(db, conv, exclude_user_id) if conv else None
+        if other:
+            await _push_ws(other.id, payload)
+    except Exception as e:
+        logger.warning(f"WS push to peer failed: {e}")
+
+
 async def send_message(db: AsyncSession, sender: User, receiver_id: UUID, payload: dict) -> dict:
     if sender.id == receiver_id:
         raise HTTPException(status_code=400, detail="Cannot message yourself")
@@ -694,7 +719,9 @@ async def edit_message(db: AsyncSession, message_id: UUID, user: User, content: 
     message.edited_at = datetime.utcnow()
     await db.flush()
 
-    return await serialize_message(db, message, user)
+    serialized = await serialize_message(db, message, user)
+    await _push_other(db, message, user.id, {"type": "message_updated", "message": serialized})
+    return serialized
 
 
 async def attach_link_preview(db: AsyncSession, receiver_id: UUID, preview: dict, user: User = None) -> dict | None:
@@ -749,6 +776,8 @@ async def delete_message(db: AsyncSession, message_id: UUID, user: User, mode: s
     await db.flush()
 
     serialized = await serialize_message(db, message, user)
+    if mode == "everyone":
+        await _push_other(db, message, user.id, {"type": "message_deleted", "message": serialized})
     return serialized
 
 
@@ -786,10 +815,21 @@ async def toggle_reaction(db: AsyncSession, message_id: UUID, user: User, emoji:
     react_result = await db.execute(
         select(MessageReaction).where(MessageReaction.message_id == message_id)
     )
-    return [
+    reactions = [
         {"id": str(r.id), "user_id": str(r.user_id), "emoji": r.emoji}
         for r in react_result.scalars().all()
     ]
+    await _push_other(db, message, user.id, {
+        "type": "message_updated",
+        "message": {
+            "id": str(message.id),
+            "conversation_id": str(message.conversation_id) if message.conversation_id else None,
+            "sender_id": str(message.sender_id),
+            "receiver_id": str(message.receiver_id) if message.receiver_id else None,
+            "reactions": reactions,
+        },
+    })
+    return reactions
 
 
 async def toggle_star(db: AsyncSession, message_id: UUID, user: User) -> bool:

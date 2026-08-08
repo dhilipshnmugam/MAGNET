@@ -11,10 +11,11 @@ interface MessageComposerProps {
   onSend: (text: string, files: File[]) => Promise<void>;
   onTyping: (isTyping: boolean) => void;
   typingEnabled: boolean;
+  autoFocus?: boolean;
 }
 
 export default function MessageComposer({
-  replyTo, onCancelReply, onSend, onTyping, typingEnabled,
+  replyTo, onCancelReply, onSend, onTyping, typingEnabled, autoFocus,
 }: MessageComposerProps) {
   const [text, setText] = useState('');
   const [files, setFiles] = useState<File[]>([]);
@@ -128,6 +129,7 @@ export default function MessageComposer({
             onKeyDown={onKeyDown}
             placeholder="Type a message..."
             rows={1}
+            autoFocus={autoFocus}
             className="max-h-32 min-h-[42px] w-full resize-none rounded-2xl border border-gray-200 bg-gray-100 px-4 py-2.5 pr-10 text-sm outline-none focus:border-[#0095f6] focus:bg-white dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:focus:bg-gray-800"
           />
           <button

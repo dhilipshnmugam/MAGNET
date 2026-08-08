@@ -13,12 +13,14 @@ from app.services import channel_service
 router = APIRouter(prefix="/channels", tags=["Channels"])
 
 
+@router.post("", response_model=ResponseModel, status_code=201)
 @router.post("/", response_model=ResponseModel, status_code=201)
 async def create_channel(data: ChannelCreate, db: AsyncSession = Depends(get_db), user: User = Depends(require_staff)):
     channel = await channel_service.create_channel(db, user, data)
     return ResponseModel(data=ChannelOut.model_validate(channel).model_dump(), message="Channel created")
 
 
+@router.get("", response_model=PaginatedResponse)
 @router.get("/", response_model=PaginatedResponse)
 async def list_channels(
     search: str = Query(None),

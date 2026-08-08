@@ -13,6 +13,7 @@ from app.services import notification_service
 router = APIRouter(prefix="/notifications", tags=["Notifications"])
 
 
+@router.get("", response_model=PaginatedResponse)
 @router.get("/", response_model=PaginatedResponse)
 async def get_notifications(
     page: int = Query(1, ge=1),

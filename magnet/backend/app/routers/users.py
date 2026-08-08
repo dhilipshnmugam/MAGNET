@@ -53,6 +53,7 @@ async def update_hod_profile(
     return ResponseModel(message="HOD profile updated")
 
 
+@router.get("", response_model=PaginatedResponse)
 @router.get("/", response_model=PaginatedResponse)
 async def list_users(
     search: str = Query(None),

@@ -22,6 +22,7 @@ async def department_stats(
     return ResponseModel(data=stats)
 
 
+@router.get("", response_model=PaginatedResponse)
 @router.get("/", response_model=PaginatedResponse)
 async def list_departments(
     search: str = Query(None),
@@ -54,6 +55,7 @@ async def get_department(
     return ResponseModel(data=DepartmentDetailOut(**data).model_dump())
 
 
+@router.post("", response_model=ResponseModel)
 @router.post("/", response_model=ResponseModel)
 async def create_department(
     data: DepartmentCreate,

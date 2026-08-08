@@ -42,11 +42,15 @@ const TOAST_DURATIONS: Record<string, number> = {
   leaderboard: 5000,
 };
 
-function getWsUrl(): string {
-  const base = import.meta.env.VITE_WS_URL || import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
-  const protocol = base.startsWith('https') ? 'wss' : 'ws';
-  const host = base.replace(/^https?:\/\//, '');
-  return `${protocol}://${host}/ws/notifications`;
+function getWsUrl(path: string): string {
+  const base = import.meta.env.VITE_WS_URL || import.meta.env.VITE_API_URL || '';
+  if (base.startsWith('ws') || base.startsWith('http')) {
+    const scheme = base.startsWith('https') ? 'wss' : 'ws';
+    const host = base.replace(/^(https?|wss?):\/\//, '');
+    return `${scheme}://${host}${path}`;
+  }
+  const scheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
+  return `${scheme}://${window.location.host}${path}`;
 }
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
@@ -133,7 +137,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     if (!wsToken) return;
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) return;
 
-    const wsUrl = `${getWsUrl()}?token=${wsToken}`;
+    const wsUrl = `${getWsUrl('/ws/notifications')}?token=${wsToken}`;
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 

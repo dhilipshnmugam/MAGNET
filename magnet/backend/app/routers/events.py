@@ -10,12 +10,14 @@ from app.services import event_service
 router = APIRouter(prefix="/events", tags=["Events"])
 
 
+@router.post("", response_model=ResponseModel, status_code=201)
 @router.post("/", response_model=ResponseModel, status_code=201)
 async def create_event(data: EventCreate, db: AsyncSession = Depends(get_db), user: User = Depends(require_staff)):
     event = await event_service.create_event(db, user, data)
     return ResponseModel(data=EventOut.model_validate(event).model_dump(), message="Event created")
 
 
+@router.get("", response_model=PaginatedResponse)
 @router.get("/", response_model=PaginatedResponse)
 async def list_events(
     event_type: str = Query(None),

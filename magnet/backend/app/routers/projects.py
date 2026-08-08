@@ -13,6 +13,7 @@ from app.models.user import User
 router = APIRouter(prefix="/projects", tags=["Projects"])
 
 
+@router.get("")
 @router.get("/")
 async def list_projects(
     category: Optional[str] = None,

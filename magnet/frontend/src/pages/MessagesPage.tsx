@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
   MessageCircle, Search, PenSquare, ArrowLeft, MoreVertical, Info, Pin, Archive,
@@ -108,6 +108,7 @@ export default function MessagesPage() {
     refreshConversations, markConversationRead, sendTyping, sendSeen, onWsMessage, addMessage,
   } = useMessages();
 
+  const [searchParams] = useSearchParams();
   const [activeUserId, setActiveUserId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [messagesLoading, setMessagesLoading] = useState(false);
@@ -169,6 +170,16 @@ export default function MessagesPage() {
     markConversationRead(activeUserId);
     sendSeen(activeUserId);
   }, [activeUserId, loadMessages, markConversationRead, sendSeen]);
+
+  // ── deep link: /messages?user=<id> opens a conversation ────────────
+  const deepLinkUserId = searchParams.get('user');
+  useEffect(() => {
+    if (!deepLinkUserId || !user || deepLinkUserId === user.id) return;
+    setActiveUserId(deepLinkUserId);
+    messageService.createConversation(deepLinkUserId)
+      .then(() => refreshConversations())
+      .catch((e) => toast.error(getApiError(e)));
+  }, [deepLinkUserId, user?.id, refreshConversations]);
 
   // ── realtime updates for the open chat ─────────────────────────────
   useEffect(() => {
@@ -639,6 +650,7 @@ export default function MessagesPage() {
                 onSend={handleSend}
                 onTyping={(t) => sendTyping(activeUserId, t, activeConv?.conversation_id)}
                 typingEnabled={!!activeConv?.conversation_id}
+                autoFocus
               />
             )}
           </>

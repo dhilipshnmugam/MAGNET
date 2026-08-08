@@ -174,6 +174,7 @@ async def search_in_conversation(
 #  SENDING
 # ──────────────────────────────────────────────────────────────────────
 
+@router.post("", response_model=ResponseModel, status_code=201)
 @router.post("/", response_model=ResponseModel, status_code=201)
 async def send_message(
     data: MessageCreate,

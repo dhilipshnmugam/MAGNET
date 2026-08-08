@@ -21,11 +21,15 @@ interface MessageContextType {
 
 const MessageContext = createContext<MessageContextType | undefined>(undefined);
 
-function getWsUrl(): string {
-  const base = import.meta.env.VITE_WS_URL || import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
-  const protocol = base.startsWith('https') ? 'wss' : 'ws';
-  const host = base.replace(/^https?:\/\//, '');
-  return `${protocol}://${host}/ws/messages`;
+function getWsUrl(path: string): string {
+  const base = import.meta.env.VITE_WS_URL || import.meta.env.VITE_API_URL || '';
+  if (base.startsWith('ws') || base.startsWith('http')) {
+    const scheme = base.startsWith('https') ? 'wss' : 'ws';
+    const host = base.replace(/^(https?|wss?):\/\//, '');
+    return `${scheme}://${host}${path}`;
+  }
+  const scheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
+  return `${scheme}://${window.location.host}${path}`;
 }
 
 export function MessageProvider({ children }: { children: ReactNode }) {
@@ -55,7 +59,30 @@ export function MessageProvider({ children }: { children: ReactNode }) {
       const existing = prev.find((c) =>
         c.other_user_id === message.sender_id || c.other_user_id === message.receiver_id
       );
-      if (!existing) return prev;
+      if (!existing) {
+        const isIncoming = message.receiver_id === currentUserId;
+        const otherUserId = isIncoming ? message.sender_id : message.receiver_id;
+        if (!otherUserId) return prev;
+        const sender = message as Message & { sender_name?: string | null; sender_avatar?: string | null; receiver_name?: string | null; receiver_avatar?: string | null };
+        const preview: Conversation = {
+          conversation_id: message.conversation_id || undefined,
+          other_user_id: otherUserId,
+          other_user_name: isIncoming ? sender.sender_name || 'User' : sender.receiver_name || 'User',
+          other_user_avatar: (isIncoming ? sender.sender_avatar : sender.receiver_avatar) || null,
+          last_message:
+            message.message_type === 'deleted'
+              ? null
+              : message.content || (message.message_type === 'image' ? 'Photo' : ''),
+          last_message_type: message.message_type,
+          last_message_at: message.created_at,
+          unread_count: isIncoming ? 1 : 0,
+          is_pinned: false,
+          is_archived: false,
+          is_muted: false,
+          is_online: online !== undefined ? online : false,
+        };
+        return [preview, ...prev];
+      }
       const isIncoming = message.receiver_id === currentUserId;
       return prev.map((c) => {
         const isRelevant =
@@ -135,7 +162,7 @@ export function MessageProvider({ children }: { children: ReactNode }) {
     if (!wsToken) return;
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) return;
 
-    const ws = new WebSocket(`${getWsUrl()}?token=${wsToken}`);
+    const ws = new WebSocket(`${getWsUrl('/ws/messages')}?token=${wsToken}`);
     wsRef.current = ws;
 
     ws.onopen = () => {

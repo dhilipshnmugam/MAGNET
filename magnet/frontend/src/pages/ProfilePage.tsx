@@ -13,7 +13,7 @@ import AchievementsTab from '../components/profile/AchievementsTab';
 import toast from 'react-hot-toast';
 import {
   Camera, Share2, Grid3X3, Award, Users,
-  Edit3, BarChart3, Plus, Clock, UserPlus, Check,
+  Edit3, BarChart3, Plus, Clock, UserPlus, Check, MessageCircle,
   GraduationCap, MapPin, BadgeCheck, Briefcase, Building2, Code,
 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -237,6 +237,10 @@ export default function ProfilePage() {
                 </>
               ) : (
                 <>
+                  <button onClick={() => navigate(`/messages?user=${viewingUserId}`)}
+                    className="flex items-center gap-1.5 rounded-lg border border-gray-300 px-4 py-1.5 text-sm font-semibold text-gray-700 transition-all hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800">
+                    <MessageCircle className="h-4 w-4" /> Message
+                  </button>
                   <button onClick={handleFollow} disabled={followLoading}
                     className={`flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-sm font-semibold transition-all ${
                       isFollowing

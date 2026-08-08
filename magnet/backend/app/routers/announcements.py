@@ -10,6 +10,7 @@ from app.services import announcement_service
 router = APIRouter(prefix="/announcements", tags=["Announcements"])
 
 
+@router.post("", response_model=ResponseModel, status_code=201)
 @router.post("/", response_model=ResponseModel, status_code=201)
 async def create_announcement(
     data: AnnouncementCreate, db: AsyncSession = Depends(get_db), user: User = Depends(require_admin_or_principal)
@@ -21,6 +22,7 @@ async def create_announcement(
     )
 
 
+@router.get("", response_model=PaginatedResponse)
 @router.get("/", response_model=PaginatedResponse)
 async def list_announcements(
     page: int = Query(1, ge=1),
