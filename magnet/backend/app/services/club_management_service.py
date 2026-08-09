@@ -1,7 +1,7 @@
 from uuid import UUID
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, and_
+from sqlalchemy import select, func, and_, or_
 from sqlalchemy.orm import selectinload
 from sqlalchemy import inspect as sa_inspect
 from fastapi import HTTPException, status
@@ -614,3 +614,102 @@ async def get_club_dashboard(db: AsyncSession, club_id: UUID) -> dict:
 async def get_hod_department_id(db: AsyncSession, user_id: UUID) -> UUID | None:
     result = await db.execute(select(User.department_id).where(User.id == user_id))
     return result.scalar_one_or_none()
+
+
+async def get_user_clubs(db: AsyncSession, user_id: UUID) -> list[dict]:
+    """Clubs a user is affiliated with.
+
+    - Principal: college-level oversight -> all active clubs.
+    - Everyone else: clubs they are a member of (club_members), or are linked to
+      as owner / club admin / faculty coordinator (deduplicated).
+    """
+    user_result = await db.execute(select(User).where(User.id == user_id))
+    user = user_result.scalar_one_or_none()
+    if not user:
+        return []
+
+    club_map: dict = {}
+
+    if user.role == "principal":
+        rows = (await db.execute(
+            select(Club).options(
+                selectinload(Club.faculty_coordinator),
+                selectinload(Club.club_admin),
+                selectinload(Club.department),
+            ).where(Club.is_active == True).order_by(Club.name)
+        )).scalars().all()
+        for club in rows:
+            club_map[club.id] = {"club": club, "role": "principal", "roles": []}
+    else:
+        memberships = (await db.execute(
+            select(ClubMember).options(
+                selectinload(ClubMember.club).selectinload(Club.faculty_coordinator),
+                selectinload(ClubMember.club).selectinload(Club.club_admin),
+                selectinload(ClubMember.club).selectinload(Club.department),
+                selectinload(ClubMember.roles),
+            ).where(ClubMember.user_id == user_id)
+        )).scalars().unique().all()
+        for m in memberships:
+            if m.club and m.club.id not in club_map:
+                club_map[m.club.id] = {
+                    "club": m.club,
+                    "role": m.role,
+                    "roles": [r.role for r in m.roles],
+                }
+
+        linked = (await db.execute(
+            select(Club).options(
+                selectinload(Club.faculty_coordinator),
+                selectinload(Club.club_admin),
+                selectinload(Club.department),
+            ).where(
+                or_(
+                    Club.owner_id == user_id,
+                    Club.club_admin_id == user_id,
+                    Club.faculty_coordinator_id == user_id,
+                )
+            )
+        )).scalars().all()
+        for club in linked:
+            if club.id not in club_map:
+                role = (
+                    "owner" if club.owner_id == user_id
+                    else "admin" if club.club_admin_id == user_id
+                    else "coordinator"
+                )
+                club_map[club.id] = {"club": club, "role": role, "roles": []}
+
+    if not club_map:
+        return []
+
+    counts = (await db.execute(
+        select(ClubMember.club_id, func.count())
+        .where(ClubMember.club_id.in_(list(club_map.keys())))
+        .group_by(ClubMember.club_id)
+    )).all()
+    count_map = {cid: cnt for cid, cnt in counts}
+
+    clubs_data = []
+    for cid, info in club_map.items():
+        club = info["club"]
+        d = _build_club_out(club, count_map.get(cid, 0))
+        clubs_data.append({
+            "id": str(d["id"]),
+            "name": d["name"],
+            "club_code": d["club_code"],
+            "description": d["description"],
+            "category": d["category"],
+            "domain": d["domain"],
+            "club_type": d["club_type"],
+            "icon_url": d["icon_url"],
+            "banner_url": d["banner_url"],
+            "department_id": d["department_id"],
+            "department_name": d["department_name"],
+            "member_count": d["member_count"],
+            "role": info["role"],
+            "roles": info["roles"],
+            "is_active": d["is_active"],
+            "status": d["status"],
+        })
+    clubs_data.sort(key=lambda x: x["name"].lower())
+    return clubs_data

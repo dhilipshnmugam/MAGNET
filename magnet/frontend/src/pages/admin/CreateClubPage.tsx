@@ -462,12 +462,12 @@ export default function CreateClubPage() {
       </div>
 
       {/* Step Indicator */}
-      <div className="flex items-center justify-between">
+      <div className="scrollbar-hide flex items-center justify-between overflow-x-auto">
         {STEPS.map((s, i) => (
-          <div key={s.id} className="flex items-center">
+          <div key={s.id} className="flex shrink-0 items-center">
             <button
               onClick={() => setStep(s.id)}
-              className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-medium transition-colors ${
+              className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium transition-colors sm:h-9 sm:w-9 sm:text-sm ${
                 step === s.id
                   ? 'bg-sky-500 text-white'
                   : step > s.id
@@ -478,7 +478,7 @@ export default function CreateClubPage() {
               {step > s.id ? <Check className="h-4 w-4" /> : s.id}
             </button>
             {i < STEPS.length - 1 && (
-              <div className={`mx-1 h-0.5 w-6 sm:w-10 ${step > s.id ? 'bg-green-500' : 'bg-gray-200 dark:bg-gray-700'}`} />
+              <div className={`mx-1 h-0.5 w-2 sm:mx-1.5 sm:w-10 ${step > s.id ? 'bg-green-500' : 'bg-gray-200 dark:bg-gray-700'}`} />
             )}
           </div>
         ))}

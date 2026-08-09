@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, Field
-from typing import Optional
+from typing import Optional, List
 from uuid import UUID
 from datetime import datetime
 
@@ -165,3 +165,51 @@ class ProfileView(BaseModel):
     post_count: int = 0
     is_following: bool = False
     is_self: bool = False
+    clubs: List["ProfileClub"] = []
+    achievements: List["ProfileAchievement"] = []
+    projects: List["ProfileProject"] = []
+
+
+class ProfileClub(BaseModel):
+    id: UUID
+    name: str
+    club_code: Optional[str] = None
+    description: Optional[str] = None
+    category: Optional[str] = None
+    domain: Optional[str] = None
+    club_type: Optional[str] = None
+    icon_url: Optional[str] = None
+    banner_url: Optional[str] = None
+    department_id: Optional[UUID] = None
+    department_name: Optional[str] = None
+    member_count: int = 0
+    role: Optional[str] = None
+    roles: List[str] = []
+    is_active: bool = True
+    status: Optional[str] = None
+
+
+class ProfileAchievement(BaseModel):
+    id: UUID
+    title: Optional[str] = None
+    description: Optional[str] = None
+    achievement_type: Optional[str] = None
+    achievement_score: Optional[int] = None
+    certificate_url: Optional[str] = None
+    date: Optional[datetime] = None
+    image_url: Optional[str] = None
+
+
+class ProfileProject(BaseModel):
+    id: UUID
+    name: str
+    description: Optional[str] = None
+    tech_stack: Optional[List[str]] = None
+    category: Optional[str] = None
+    status: Optional[str] = None
+    member_count: int = 0
+    task_count: int = 0
+    completed_task_count: int = 0
+    my_role: Optional[str] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None

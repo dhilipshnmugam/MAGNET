@@ -50,6 +50,10 @@ async def get_user_profile(db: AsyncSession, user_id: UUID, viewer_id: UUID = No
             )).scalar_one_or_none()
             is_following = existing is not None
 
+    clubs = await _profile_clubs(db, user_id)
+    achievements = await _profile_achievements(db, user_id)
+    projects = await _profile_projects(db, user_id)
+
     return {
         "user": user,
         "follower_count": follower_count,
@@ -57,7 +61,97 @@ async def get_user_profile(db: AsyncSession, user_id: UUID, viewer_id: UUID = No
         "post_count": post_count,
         "is_following": is_following,
         "is_self": is_self,
+        "clubs": clubs,
+        "achievements": achievements,
+        "projects": projects,
     }
+
+
+async def _profile_clubs(db: AsyncSession, user_id: UUID) -> list[dict]:
+    from app.services.club_management_service import get_user_clubs
+    return await get_user_clubs(db, user_id)
+
+
+async def _profile_achievements(db: AsyncSession, user_id: UUID) -> list[dict]:
+    from sqlalchemy.orm import selectinload
+    rows = (await db.execute(
+        select(Post)
+        .options(selectinload(Post.media))
+        .where(Post.author_id == user_id, Post.post_type == "achievement")
+        .order_by(Post.created_at.desc())
+        .limit(100)
+    )).scalars().all()
+
+    out = []
+    for p in rows:
+        image_url = None
+        if p.media:
+            first_image = next((m for m in p.media if m.media_type == "image"), None)
+            if first_image:
+                image_url = first_image.media_url
+        if not image_url and p.image_url:
+            image_url = p.image_url
+        if not image_url and p.certificate_url:
+            image_url = p.certificate_url
+
+        out.append({
+            "id": p.id,
+            "title": p.title,
+            "description": p.content,
+            "achievement_type": p.achievement_type,
+            "achievement_score": p.achievement_score,
+            "certificate_url": p.certificate_url,
+            "date": p.created_at,
+            "image_url": image_url,
+        })
+    return out
+
+
+async def _profile_projects(db: AsyncSession, user_id: UUID) -> list[dict]:
+    from app.models.project import Project, ProjectMember
+    from sqlalchemy.orm import joinedload
+
+    owned = (await db.execute(
+        select(Project).options(
+            joinedload(Project.owner),
+            joinedload(Project.members),
+            joinedload(Project.tasks),
+        ).where(Project.owner_id == user_id).order_by(Project.updated_at.desc())
+    )).unique().scalars().all()
+
+    member_rows = (await db.execute(
+        select(Project).options(
+            joinedload(Project.owner),
+            joinedload(Project.members),
+            joinedload(Project.tasks),
+        ).join(ProjectMember).where(ProjectMember.user_id == user_id)
+        .order_by(Project.updated_at.desc())
+    )).unique().scalars().all()
+
+    seen = set()
+    out = []
+    for p in owned + member_rows:
+        if p.id in seen:
+            continue
+        seen.add(p.id)
+        membership = next((m for m in p.members if m.user_id == user_id), None)
+        total_tasks = len(p.tasks)
+        completed_tasks = sum(1 for t in p.tasks if t.status == "completed")
+        out.append({
+            "id": p.id,
+            "name": p.name,
+            "description": p.description[:200] if p.description else None,
+            "tech_stack": p.tech_stack or [],
+            "category": p.category,
+            "status": p.status,
+            "member_count": len(p.members),
+            "task_count": total_tasks,
+            "completed_task_count": completed_tasks,
+            "my_role": membership.role if membership else "owner",
+            "created_at": p.created_at,
+            "updated_at": p.updated_at,
+        })
+    return out
 
 
 async def follow_user(db: AsyncSession, follower_id: UUID, following_id: UUID) -> None:

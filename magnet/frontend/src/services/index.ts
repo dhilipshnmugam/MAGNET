@@ -16,7 +16,15 @@ export const announcementService = {
 
 export const eventService = {
   create: (data: any) => api.post('/events', data),
-  list: (params?: { event_type?: string; page?: number; page_size?: number }) => api.get('/events', { params }),
+  list: (params?: {
+    search?: string;
+    event_type?: string;
+    category?: string;
+    scope?: string;
+    organizer_type?: string;
+    page?: number;
+    page_size?: number;
+  }) => api.get('/events', { params }),
   getById: (id: string) => api.get(`/events/${id}`),
   update: (id: string, data: any) => api.put(`/events/${id}`, data),
   delete: (id: string) => api.delete(`/events/${id}`),

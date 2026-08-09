@@ -98,6 +98,9 @@ async def get_user_profile(
         post_count=data["post_count"],
         is_following=data["is_following"],
         is_self=data["is_self"],
+        clubs=data.get("clubs", []),
+        achievements=data.get("achievements", []),
+        projects=data.get("projects", []),
     )
     return ResponseModel(data=profile_data.model_dump())
 

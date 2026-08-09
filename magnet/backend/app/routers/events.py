@@ -20,13 +20,19 @@ async def create_event(data: EventCreate, db: AsyncSession = Depends(get_db), us
 @router.get("", response_model=PaginatedResponse)
 @router.get("/", response_model=PaginatedResponse)
 async def list_events(
+    search: str = Query(None),
     event_type: str = Query(None),
+    category: str = Query(None),
+    scope: str = Query(None),
+    organizer_type: str = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    events, total = await event_service.list_events(db, user, event_type, page, page_size)
+    events, total = await event_service.list_events(
+        db, user, search, event_type, category, scope, organizer_type, page, page_size
+    )
     return PaginatedResponse(
         data=[EventOut.model_validate(e).model_dump() for e in events],
         total=total, page=page, page_size=page_size,

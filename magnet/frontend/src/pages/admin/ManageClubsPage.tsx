@@ -91,7 +91,7 @@ export default function ManageClubsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Trophy className="h-7 w-7 text-sky-500" />
           <h1 className="text-2xl font-bold">Club Management</h1>
@@ -239,7 +239,7 @@ export default function ManageClubsPage() {
         {totalPages > 1 && (
           <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3 dark:border-gray-800">
             <p className="text-sm text-gray-500">Page {page} of {totalPages}</p>
-            <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
               <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
                 className="rounded-lg border border-gray-200 p-1.5 hover:bg-gray-50 disabled:opacity-40 dark:border-gray-700 dark:hover:bg-gray-800">
                 <ChevronLeft className="h-4 w-4" />

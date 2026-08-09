@@ -54,7 +54,7 @@ export default function DepartmentsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Building2 className="h-7 w-7 text-sky-500" />
           <h1 className="text-2xl font-bold">Departments</h1>
@@ -66,7 +66,7 @@ export default function DepartmentsPage() {
       </div>
 
       {/* Filters */}
-      <div className="card flex items-center gap-3 p-4">
+      <div className="card flex flex-wrap items-center gap-3 p-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input type="text" placeholder="Search departments..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }}
@@ -82,7 +82,8 @@ export default function DepartmentsPage() {
 
       {/* Table */}
       <div className="card overflow-hidden">
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50/50 dark:border-gray-800 dark:bg-gray-900/50">
               <th className="px-4 py-3 text-left font-medium text-gray-500">Name</th>
@@ -131,7 +132,8 @@ export default function DepartmentsPage() {
               <tr><td colSpan={7} className="px-4 py-12 text-center text-gray-400">No departments found</td></tr>
             )}
           </tbody>
-        </table>
+          </table>
+        </div>
       </div>
 
       {/* Pagination */}

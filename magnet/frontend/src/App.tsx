@@ -22,6 +22,8 @@ import ProfilePage from './pages/ProfilePage';
 import MessagesPage from './pages/MessagesPage';
 import ChannelsPage from './pages/ChannelsPage';
 import EventsPage from './pages/EventsPage';
+import EventCreatePage from './pages/EventCreatePage';
+import EventDetailsPage from './pages/EventDetailsPage';
 import NotificationsPage from './pages/NotificationsPage';
 import LeaderboardPage from './pages/LeaderboardPage';
 import SearchPage from './pages/SearchPage';
@@ -76,6 +78,15 @@ export default function App() {
                 <Route path="/messages" element={<ProtectedRoute><Layout><MessagesPage /></Layout></ProtectedRoute>} />
                 <Route path="/channels" element={<ProtectedRoute><Layout><ChannelsPage /></Layout></ProtectedRoute>} />
                 <Route path="/events" element={<ProtectedRoute><Layout><EventsPage /></Layout></ProtectedRoute>} />
+                <Route
+                  path="/events/create"
+                  element={<ProtectedRoute roles={['department_admin', 'super_admin', 'club_admin', 'principal']}><Layout><EventCreatePage /></Layout></ProtectedRoute>}
+                />
+                <Route
+                  path="/events/:eventId/edit"
+                  element={<ProtectedRoute roles={['department_admin', 'super_admin', 'club_admin', 'principal']}><Layout><EventCreatePage /></Layout></ProtectedRoute>}
+                />
+                <Route path="/events/:eventId" element={<ProtectedRoute><Layout><EventDetailsPage /></Layout></ProtectedRoute>} />
                 <Route path="/notifications" element={<ProtectedRoute><Layout><NotificationsPage /></Layout></ProtectedRoute>} />
                 <Route path="/leaderboard" element={<ProtectedRoute><Layout><LeaderboardPage /></Layout></ProtectedRoute>} />
                 <Route path="/search" element={<ProtectedRoute><Layout><SearchPage /></Layout></ProtectedRoute>} />

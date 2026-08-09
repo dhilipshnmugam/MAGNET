@@ -5,7 +5,8 @@ from sqlalchemy.orm import selectinload
 from app.models.user import User
 from app.models.club import Club, ClubMember
 from app.models.department import Department
-from app.models.post import Post
+from app.models.post import Post, Like, Bookmark
+from app.schemas.post import PostOut
 
 
 def _build_user_result(u: User) -> dict:
@@ -55,25 +56,20 @@ def _build_department_result(d: Department, student_count: int = 0) -> dict:
     }
 
 
-def _build_post_result(p: Post) -> dict:
-    author_name = p.author.full_name if p.author else None
-    author_avatar = p.author.avatar_url if p.author else None
-    return {
-        "id": str(p.id),
-        "content": p.content[:300] if p.content else None,
-        "title": p.title,
-        "hashtags": p.hashtags,
-        "post_type": p.post_type,
-        "image_url": p.image_url,
-        "video_url": p.video_url,
-        "like_count": p.like_count,
-        "comment_count": p.comment_count,
-        "created_at": p.created_at.isoformat() if p.created_at else None,
-        "author_id": str(p.author_id),
-        "author_name": author_name,
-        "author_avatar": author_avatar,
-        "entity_type": "post",
-    }
+async def _load_full_posts(db: AsyncSession, posts: list[Post], user: User) -> list[dict]:
+    """Attach liked/bookmarked flags and serialize posts with the full PostOut shape."""
+    if posts:
+        post_ids = [p.id for p in posts]
+        like_ids = set((await db.execute(
+            select(Like.post_id).where(Like.user_id == user.id, Like.post_id.in_(post_ids))
+        )).scalars().all())
+        bookmark_ids = set((await db.execute(
+            select(Bookmark.post_id).where(Bookmark.user_id == user.id, Bookmark.post_id.in_(post_ids))
+        )).scalars().all())
+        for p in posts:
+            p.is_liked_by_user = p.id in like_ids
+            p.is_bookmarked_by_user = p.id in bookmark_ids
+    return [PostOut.model_validate(p).model_dump() for p in posts]
 
 
 async def global_search(
@@ -222,7 +218,10 @@ async def global_search(
     if filter_type in ("all", "posts"):
         posts_query = (
             select(Post)
-            .options(selectinload(Post.author))
+            .options(
+                selectinload(Post.author).selectinload(User.department),
+                selectinload(Post.media),
+            )
             .where(
                 Post.is_approved == True,
                 or_(
@@ -236,7 +235,8 @@ async def global_search(
             .offset(offset)
             .limit(limit)
         )
-        posts = [_build_post_result(p) for p in (await db.execute(posts_query)).scalars().all()]
+        raw_posts = list((await db.execute(posts_query)).scalars().unique().all())
+        posts = await _load_full_posts(db, raw_posts, user)
         posts_total = await db.execute(
             select(func.count()).select_from(
                 select(Post).where(

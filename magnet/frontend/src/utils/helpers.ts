@@ -15,6 +15,32 @@ export function formatEventDate(date: string): string {
   return format(new Date(date), 'MMM d, yyyy h:mm a');
 }
 
+export function formatEventTime(date: string | null): string {
+  if (!date) return '';
+  return format(new Date(date), 'h:mm a');
+}
+
+export function eventMonth(date: string): string {
+  return format(new Date(date), 'MMM').toUpperCase();
+}
+
+export function eventDay(date: string): string {
+  return format(new Date(date), 'd');
+}
+
+export function eventYear(date: string): string {
+  return format(new Date(date), 'yyyy');
+}
+
+export function isPastEvent(date: string): boolean {
+  return new Date(date).getTime() < Date.now();
+}
+
+export function formatEventCardDate(date: string): string {
+  const d = new Date(date);
+  return `${format(d, 'EEE, MMM d')} · ${format(d, 'h:mm a')}`;
+}
+
 export function getInitials(name: string): string {
   return name
     .split(' ')

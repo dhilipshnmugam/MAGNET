@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Home, Search, Heart, User, MessageCircle } from 'lucide-react';
+import { Home, Search, Calendar, MessageCircle, Heart, User } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useMessages } from '../../context/MessageContext';
 import { cn } from '../../utils/helpers';
@@ -7,6 +7,7 @@ import { cn } from '../../utils/helpers';
 const items = [
   { to: '/feed', icon: Home, label: 'Home' },
   { to: '/search', icon: Search, label: 'Search' },
+  { to: '/events', icon: Calendar, label: 'Events' },
   { to: '/messages', icon: MessageCircle, label: 'Messages' },
   { to: '/notifications', icon: Heart, label: 'Activity' },
   { to: '/profile', icon: User, label: 'Profile' },

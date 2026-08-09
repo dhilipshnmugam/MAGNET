@@ -35,6 +35,18 @@ USERS_COLUMNS = {
     "last_seen_at": "TIMESTAMPTZ",
 }
 
+EVENTS_COLUMNS = {
+    "category": "VARCHAR(50) DEFAULT 'general'",
+    "club_id": "VARCHAR(36)",
+    "department_id": "VARCHAR(36)",
+    "creator_role": "VARCHAR(30)",
+    "organizer_name": "VARCHAR(255)",
+    "registration_url": "TEXT",
+    "contact_email": "VARCHAR(255)",
+    "contact_phone": "VARCHAR(30)",
+    "additional_info": "TEXT",
+}
+
 
 async def _table_columns(conn, table: str, is_sqlite: bool) -> set[str]:
     if is_sqlite:
@@ -118,5 +130,6 @@ async def run_migrations(conn) -> int:
     changes = 0
     changes += await _ensure_columns(conn, "direct_messages", DIRECT_MESSAGE_COLUMNS, is_sqlite)
     changes += await _ensure_columns(conn, "users", USERS_COLUMNS, is_sqlite)
+    changes += await _ensure_columns(conn, "events", EVENTS_COLUMNS, is_sqlite)
     changes += await _backfill_conversations(conn, is_sqlite)
     return changes

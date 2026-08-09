@@ -1,44 +1,70 @@
-import { useState, useEffect } from 'react';
-import { Trophy, Medal, Star, Target, Zap, Award } from 'lucide-react';
+import { Trophy, Award, Calendar } from 'lucide-react';
+import { format } from 'date-fns';
+import type { ProfileAchievement } from '../../types';
 
 interface AchievementsTabProps {
-  userId?: string;
+  achievements: ProfileAchievement[];
+  loading?: boolean;
 }
 
-const MOCK_ACHIEVEMENTS = [
-  { icon: Trophy, label: 'First Post', desc: 'Published your first post', unlocked: true, color: 'text-amber-500' },
-  { icon: Medal, label: 'Popular', desc: 'Get 100 likes on a post', unlocked: false, color: 'text-blue-500' },
-  { icon: Star, label: 'Commenter', desc: 'Leave 50 comments', unlocked: false, color: 'text-purple-500' },
-  { icon: Target, label: 'Sharp Shooter', desc: 'Get 90%+ engagement rate', unlocked: false, color: 'text-red-500' },
-  { icon: Zap, label: 'Consistent', desc: 'Post 7 days in a row', unlocked: false, color: 'text-green-500' },
-  { icon: Award, label: 'Collaborator', desc: 'Join 3 projects', unlocked: false, color: 'text-indigo-500' },
-];
-
-export default function AchievementsTab({ userId }: AchievementsTabProps) {
-  return (
-    <div className="animate-fade-in">
+export default function AchievementsTab({ achievements, loading }: AchievementsTabProps) {
+  if (loading) {
+    return (
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {MOCK_ACHIEVEMENTS.map((ach) => (
-          <div
-            key={ach.label}
-            className={`rounded-xl border p-4 text-center transition-all ${
-              ach.unlocked
-                ? 'border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/10'
-                : 'border-gray-200 opacity-50 dark:border-gray-700'
-            }`}
-          >
-            <div className={`mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full ${
-              ach.unlocked ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-gray-100 dark:bg-gray-800'
-            }`}>
-              <ach.icon className={`h-5 w-5 ${ach.unlocked ? ach.color : 'text-gray-400'}`} />
-            </div>
-            <p className={`text-sm font-semibold ${ach.unlocked ? '' : 'text-gray-400'}`}>{ach.label}</p>
-            <p className="mt-0.5 text-[10px] text-gray-500">{ach.desc}</p>
-            {!ach.unlocked && <p className="mt-1 text-[10px] font-medium text-gray-400">🔒 Locked</p>}
-            {ach.unlocked && <p className="mt-1 text-[10px] font-medium text-amber-600">✅ Unlocked</p>}
-          </div>
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-40 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" />
         ))}
       </div>
+    );
+  }
+
+  if (achievements.length === 0) {
+    return (
+      <div className="py-16 text-center">
+        <Award className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600" />
+        <p className="mt-3 text-sm font-medium text-gray-500">No achievements yet.</p>
+        <p className="text-xs text-gray-400">Share an achievement post to showcase it here</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {achievements.map((ach) => (
+        <div
+          key={ach.id}
+          className="overflow-hidden rounded-xl border border-amber-200 bg-gradient-to-b from-amber-50 to-orange-50/40 dark:border-amber-800 dark:from-amber-900/10 dark:to-transparent"
+        >
+          {ach.image_url && (
+            <div className="aspect-video w-full overflow-hidden bg-gray-100 dark:bg-gray-800">
+              <img src={ach.image_url} alt="" loading="lazy" className="h-full w-full object-cover" />
+            </div>
+          )}
+          <div className="p-4">
+            <div className="flex items-start gap-2">
+              <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30">
+                <Trophy className="h-4 w-4 text-amber-500" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-gray-900 dark:text-white">{ach.title || 'Achievement'}</p>
+                {ach.achievement_type && (
+                  <span className="mt-0.5 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                    {ach.achievement_type}
+                  </span>
+                )}
+              </div>
+            </div>
+            {ach.description && (
+              <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-gray-600 dark:text-gray-400">{ach.description}</p>
+            )}
+            {ach.date && (
+              <p className="mt-2 flex items-center gap-1 text-[11px] text-gray-400">
+                <Calendar className="h-3 w-3" /> {format(new Date(ach.date), 'MMM d, yyyy')}
+              </p>
+            )}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

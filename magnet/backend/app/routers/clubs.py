@@ -1,8 +1,6 @@
 from uuid import UUID
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 from pydantic import BaseModel
 from app.dependencies import get_db, require_super_admin, require_club_admin, get_current_user
 from app.models.user import User
@@ -61,26 +59,7 @@ async def get_my_clubs(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    from app.models.club import ClubMember
-
-    result = await db.execute(
-        select(ClubMember).options(
-            selectinload(ClubMember.club).selectinload(
-                Club.club_admin
-            ),
-        ).where(ClubMember.user_id == user.id)
-    )
-    memberships = result.scalars().unique().all()
-
-    clubs_data = []
-    for m in memberships:
-        club = m.club
-        if club:
-            member_count = await club_management_service._get_member_count(db, club.id)
-            club_out = club_management_service._build_club_out(club, member_count)
-            club_out["user_role"] = m.role
-            clubs_data.append(club_out)
-
+    clubs_data = await club_management_service.get_user_clubs(db, user.id)
     return ResponseModel(data=clubs_data)
 
 

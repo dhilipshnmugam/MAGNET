@@ -24,7 +24,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         </div>
 
         {/* Page content */}
-        <main className="pb-20 lg:pb-0 lg:pt-0 pt-[60px]">
+        <main className="pb-20 pt-0 lg:pb-0">
           {children}
         </main>
       </div>

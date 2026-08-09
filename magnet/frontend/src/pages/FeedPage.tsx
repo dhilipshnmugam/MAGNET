@@ -7,22 +7,12 @@ import SuggestionsSidebar from '../components/feed/SuggestionsSidebar';
 import { PageLoader } from '../components/common/Loader';
 import EmptyState from '../components/common/EmptyState';
 import {
-  FileText, TrendingUp, Sparkles, Trophy, Calendar, BookOpen,
-  Users, Briefcase, Lightbulb, Globe, Compass, Hash, Zap,
+  TrendingUp, Sparkles, Briefcase, Lightbulb, Compass, Hash, Zap,
   BarChart3, ChevronRight,
 } from 'lucide-react';
 import { useInfiniteScroll } from '../hooks';
 import { cn } from '../utils/helpers';
 import { useAuth } from '../context/AuthContext';
-
-const FILTER_TABS: { value: string; label: string; icon: React.ReactNode }[] = [
-  { value: 'all', label: 'All', icon: <Globe className="h-4 w-4" /> },
-  { value: 'general', label: 'Posts', icon: <FileText className="h-4 w-4" /> },
-  { value: 'achievement', label: 'Achievements', icon: <Trophy className="h-4 w-4" /> },
-  { value: 'event', label: 'Events', icon: <Calendar className="h-4 w-4" /> },
-  { value: 'academic_resource', label: 'Resources', icon: <BookOpen className="h-4 w-4" /> },
-  { value: 'collaboration', label: 'Collabs', icon: <Users className="h-4 w-4" /> },
-];
 
 const AI_SUGGESTIONS = [
   { label: 'Trending in CS', icon: <TrendingUp className="h-4 w-4 text-red-500" />, color: 'bg-red-50 dark:bg-red-900/20' },
@@ -37,18 +27,13 @@ export default function FeedPage() {
   const [hasNext, setHasNext] = useState(true);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [activeFilter, setActiveFilter] = useState('all');
   const [trendingTags, setTrendingTags] = useState<TrendingTag[]>([]);
 
-  const fetchPosts = useCallback(async (pageNum: number, filter?: string) => {
-    const currentFilter = filter || activeFilter;
+  const fetchPosts = useCallback(async (pageNum: number) => {
     if (pageNum === 1) setLoading(true);
     else setLoadingMore(true);
     try {
       const params: any = { page: pageNum, page_size: 20 };
-      if (currentFilter !== 'all') {
-        params.post_type = currentFilter;
-      }
       const res = await postService.getFeed(params);
       const data = res.data;
       setPosts((prev) => (pageNum === 1 ? data.data : [...prev, ...data.data]));
@@ -57,7 +42,7 @@ export default function FeedPage() {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [activeFilter]);
+  }, []);
 
   useEffect(() => { fetchPosts(1); }, []);
 
@@ -72,14 +57,6 @@ export default function FeedPage() {
   useEffect(() => {
     postService.getTrendingTags(8).then((res) => setTrendingTags(res.data.data || [])).catch(() => {});
   }, []);
-
-  const handleFilterChange = (filter: string) => {
-    setActiveFilter(filter);
-    setPosts([]);
-    setPage(1);
-    setHasNext(true);
-    fetchPosts(1, filter);
-  };
 
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasNext) return;
@@ -99,33 +76,12 @@ export default function FeedPage() {
         {/* Stories */}
         <StoriesBar />
 
-        {/* Filter Tabs */}
-        <div className="card p-1.5">
-          <div className="flex gap-1 overflow-x-auto scrollbar-none">
-            {FILTER_TABS.map((tab) => (
-              <button
-                key={tab.value}
-                onClick={() => handleFilterChange(tab.value)}
-                className={cn(
-                  'flex items-center gap-1.5 whitespace-nowrap rounded-xl px-4 py-2 text-xs font-semibold transition-all',
-                  activeFilter === tab.value
-                    ? 'bg-campus-500 text-white shadow-sm'
-                    : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800'
-                )}
-              >
-                {tab.icon}
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
         {/* Posts */}
         {posts.length === 0 ? (
           <EmptyState
             icon={<Compass className="h-12 w-12" />}
             title="No posts yet"
-            description={activeFilter === 'all' ? "Be the first to share something!" : `No ${activeFilter.replace('_', ' ')} posts yet`}
+            description="Be the first to share something!"
           />
         ) : (
           <div className="space-y-4">

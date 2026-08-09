@@ -59,7 +59,7 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Stat Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
         {statCards.map((s) => (
           <StatCard key={s.label} label={s.label} value={s.value} icon={s.icon} color={s.color} change={s.change} />
         ))}

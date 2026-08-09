@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { userService, uploadService, postService } from '../services';
 import Avatar from '../components/common/Avatar';
 import { ProfileSkeleton } from '../components/common/Skeleton';
-import PostCard from '../components/feed/PostCard';
+import PostGrid from '../components/profile/PostGrid';
 import PostCreator from '../components/feed/PostCreator';
 import ClubsTab from '../components/profile/ClubsTab';
 import ProjectsTab from '../components/profile/ProjectsTab';
@@ -53,6 +53,10 @@ export default function ProfilePage() {
   const [followLoading, setFollowLoading] = useState(false);
 
   const [posts, setPosts] = useState<Post[]>([]);
+  const [clubs, setClubs] = useState<any[]>([]);
+  const [achievements, setAchievements] = useState<any[]>([]);
+  const [projects, setProjects] = useState<any[]>([]);
+  const [profileLoading, setProfileLoading] = useState(true);
 
   const [form, setForm] = useState({ full_name: '', bio: '' });
   const [studentForm, setStudentForm] = useState({ phone: '', section: '' });
@@ -79,15 +83,22 @@ export default function ProfilePage() {
     if (authStudent) setStudentForm({ phone: authStudent.phone || '', section: authStudent.section || '' });
 
     try {
-      const postsRes = await Promise.allSettled([
+      const [postsRes, profileRes] = await Promise.allSettled([
         postService.getFeed({ filter_type: 'my_posts', page: 1, page_size: 50 }),
+        userService.getProfile(authUser!.id),
       ]);
-      if (postsRes[0].status === 'fulfilled') {
-        const p = postsRes[0].value.data.data || [];
+      if (postsRes.status === 'fulfilled') {
+        const p = postsRes.value.data.data || [];
         setPosts(p);
         setPostCount(p.length);
       }
-    } catch {} finally { setLoading(false); }
+      if (profileRes.status === 'fulfilled') {
+        const d = profileRes.value.data.data;
+        setClubs(d.clubs || []);
+        setAchievements(d.achievements || []);
+        setProjects(d.projects || []);
+      }
+    } catch {} finally { setLoading(false); setProfileLoading(false); }
   };
 
   const loadOtherProfile = async (uid: string) => {
@@ -107,11 +118,14 @@ export default function ProfilePage() {
         setFollowerCount(d.follower_count || 0);
         setFollowingCount(d.following_count || 0);
         setPostCount(d.post_count || 0);
+        setClubs(d.clubs || []);
+        setAchievements(d.achievements || []);
+        setProjects(d.projects || []);
       }
       if (postsRes.status === 'fulfilled') {
         setPosts(postsRes.value.data.data || []);
       }
-    } catch {} finally { setLoading(false); }
+    } catch {} finally { setLoading(false); setProfileLoading(false); }
   };
 
   const handleFollow = async () => {
@@ -315,8 +329,10 @@ export default function ProfilePage() {
           {[
             { key: 'posts' as const, label: isOwn ? 'My Posts' : 'Posts', icon: Grid3X3 },
             { key: 'clubs' as const, label: 'Clubs', icon: Users },
-            ...(isOwn ? [
+            ...((isOwn || displayUser?.role === 'principal') ? [
               { key: 'projects' as const, label: 'Projects', icon: Code },
+            ] : []),
+            ...(isOwn ? [
               { key: 'analytics' as const, label: 'Analytics', icon: BarChart3 },
             ] : []),
             { key: 'achievements' as const, label: 'Achievements', icon: Award },
@@ -348,24 +364,20 @@ export default function ProfilePage() {
                   <p className="mt-3 text-sm font-medium text-gray-500">No posts yet</p>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {posts.map((post) => (
-                    <PostCard key={post.id} post={post} onDelete={isOwn ? handleDeletePost : undefined} />
-                  ))}
-                </div>
+                <PostGrid posts={posts} isOwn={isOwn} onDelete={isOwn ? handleDeletePost : undefined} />
               )}
             </div>
           )}
 
           {activeTab === 'clubs' && (
             <div className="animate-fade-in">
-              <ClubsTab userId={authUser?.id} />
+              <ClubsTab clubs={clubs} loading={profileLoading} />
             </div>
           )}
 
-          {activeTab === 'projects' && isOwn && (
+          {activeTab === 'projects' && (
             <div className="animate-fade-in">
-              <ProjectsTab userId={authUser?.id} />
+              <ProjectsTab projects={projects} loading={profileLoading} isOwn={isOwn} />
             </div>
           )}
 
@@ -377,7 +389,7 @@ export default function ProfilePage() {
 
           {activeTab === 'achievements' && (
             <div className="animate-fade-in">
-              <AchievementsTab userId={viewingUserId} />
+              <AchievementsTab achievements={achievements} loading={profileLoading} />
             </div>
           )}
         </div>

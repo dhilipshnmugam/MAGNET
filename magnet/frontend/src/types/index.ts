@@ -25,6 +25,54 @@ export interface ProfileView {
   post_count: number;
   is_following: boolean;
   is_self: boolean;
+  clubs: ProfileClub[];
+  achievements: ProfileAchievement[];
+  projects: ProfileProject[];
+}
+
+export interface ProfileClub {
+  id: string;
+  name: string;
+  club_code: string | null;
+  description: string | null;
+  category: string | null;
+  domain: string | null;
+  club_type: string | null;
+  icon_url: string | null;
+  banner_url: string | null;
+  department_id: string | null;
+  department_name: string | null;
+  member_count: number;
+  role: string | null;
+  roles: string[];
+  is_active: boolean;
+  status: string | null;
+}
+
+export interface ProfileAchievement {
+  id: string;
+  title: string | null;
+  description: string | null;
+  achievement_type: string | null;
+  achievement_score: number | null;
+  certificate_url: string | null;
+  date: string | null;
+  image_url: string | null;
+}
+
+export interface ProfileProject {
+  id: string;
+  name: string;
+  description: string | null;
+  tech_stack: string[] | null;
+  category: string | null;
+  status: string | null;
+  member_count: number;
+  task_count: number;
+  completed_task_count: number;
+  my_role: string | null;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 export interface Student {
@@ -287,13 +335,24 @@ export interface Event {
   creator_id: string;
   title: string;
   description: string | null;
+  category: string | null;
   event_date: string;
   end_date: string | null;
   venue: string | null;
   event_type: string;
   banner_url: string | null;
+  club_id: string | null;
+  department_id: string | null;
+  creator_role: string | null;
+  organizer_name: string | null;
+  registration_url: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+  additional_info: string | null;
   rsvp_count: number;
   creator_name: string | null;
+  club_name: string | null;
+  department_name: string | null;
   user_rsvp_status: string | null;
   created_at: string;
 }

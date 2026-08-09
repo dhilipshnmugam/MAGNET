@@ -114,8 +114,8 @@ export default function StudentClubsPage() {
       </div>
 
       {/* Search & Filter Bar */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1">
+      <div className="flex items-center gap-3.5">
+        <div className="relative min-w-0 flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
@@ -126,7 +126,7 @@ export default function StudentClubsPage() {
           />
         </div>
         <button onClick={() => setShowFilters(!showFilters)}
-          className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors ${showFilters ? 'border-sky-500 bg-sky-50 text-sky-600 dark:bg-sky-900/20' : 'border-gray-200 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800'}`}>
+          className={`flex shrink-0 items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors ${showFilters ? 'border-sky-500 bg-sky-50 text-sky-600 dark:bg-sky-900/20' : 'border-gray-200 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800'}`}>
           <Filter className="h-4 w-4" />
           Filters
           {activeFilterCount > 0 && (
@@ -177,7 +177,7 @@ export default function StudentClubsPage() {
           <button
             key={cat}
             onClick={() => { setCategory(cat); setPage(1); }}
-            className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+            className={`shrink-0 whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-colors ${
               category === cat
                 ? 'bg-sky-500 text-white'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
@@ -203,35 +203,37 @@ export default function StudentClubsPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {clubs.map((club) => (
-            <div key={club.id} className="group rounded-xl border border-gray-200 bg-white overflow-hidden transition-all hover:shadow-md dark:border-gray-700 dark:bg-gray-800">
-              {/* Banner */}
-              <div className="relative h-32 bg-gradient-to-br from-sky-400 to-blue-600">
+            <div key={club.id} className="group flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white transition-all hover:shadow-md dark:border-gray-700 dark:bg-gray-800">
+              {/* Image container */}
+              <div className="relative h-32 w-full shrink-0 overflow-hidden bg-gradient-to-br from-sky-400 to-blue-600">
                 {club.banner_url && (
-                  <img src={club.banner_url} alt="" className="h-full w-full object-cover" />
+                  <img src={club.banner_url} alt={`${club.name} banner`} className="h-full w-full object-cover" />
                 )}
                 {club.club_type && (
-                  <span className={`absolute top-2 right-2 rounded-full px-2.5 py-0.5 text-xs font-medium ${CLUB_TYPE_COLORS[club.club_type] || CLUB_TYPE_COLORS.other}`}>
+                  <span className={`absolute right-2 top-2 rounded-full px-2.5 py-0.5 text-xs font-medium ${CLUB_TYPE_COLORS[club.club_type] || CLUB_TYPE_COLORS.other}`}>
                     {club.club_type}
                   </span>
                 )}
               </div>
-              {/* Logo + Info */}
-              <div className="px-4 pb-4">
-                <div className="-mt-8 mb-3 flex items-end gap-3">
-                  <div className="h-16 w-16 rounded-xl border-3 border-white bg-white shadow-sm overflow-hidden dark:border-gray-800">
+              {/* Content container */}
+              <div className="flex flex-1 flex-col p-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
                     {club.icon_url ? (
-                      <img src={club.icon_url} alt="" className="h-full w-full object-cover" />
+                      <img src={club.icon_url} alt={`${club.name} logo`} className="h-full w-full object-cover" />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center bg-sky-100 text-xl font-bold text-sky-600">
                         {club.name.charAt(0)}
                       </div>
                     )}
                   </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="truncate text-lg font-bold leading-tight">{club.name}</h3>
+                    <p className="mt-0.5 text-xs text-gray-500">{club.club_code}</p>
+                  </div>
                 </div>
-                <h3 className="text-lg font-bold leading-tight">{club.name}</h3>
-                <p className="mt-0.5 text-xs text-gray-500">{club.club_code}</p>
                 {club.description && (
-                  <p className="mt-2 line-clamp-2 text-sm text-gray-600 dark:text-gray-400">{club.description}</p>
+                  <p className="mt-3 line-clamp-2 text-sm text-gray-600 dark:text-gray-400">{club.description}</p>
                 )}
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   {club.category && (
@@ -244,20 +246,20 @@ export default function StudentClubsPage() {
                     <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-700 dark:text-gray-300">{club.department_name}</span>
                   )}
                 </div>
-                <div className="mt-3 flex items-center gap-4 text-xs text-gray-500">
-                  <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" /> {club.member_count || 0} members</span>
+                <div className="mt-3 flex min-w-0 items-center gap-4 text-xs text-gray-500">
+                  <span className="flex shrink-0 items-center gap-1"><Users className="h-3.5 w-3.5" /> {club.member_count || 0} members</span>
                   {club.faculty_coordinator_name && (
-                    <span className="flex items-center gap-1 truncate"><Trophy className="h-3.5 w-3.5" /> {club.faculty_coordinator_name}</span>
+                    <span className="flex min-w-0 items-center gap-1 truncate"><Trophy className="h-3.5 w-3.5 shrink-0" /> {club.faculty_coordinator_name}</span>
                   )}
                 </div>
-                {/* Actions */}
-                <div className="mt-3 flex gap-2">
+                {/* Actions pinned to the bottom of every card */}
+                <div className="mt-auto flex gap-2 pt-4">
                   <button onClick={() => navigate(`/clubs/${club.id}`)}
-                    className="flex-1 rounded-lg border border-gray-200 py-2 text-sm font-medium hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700 transition-colors">
-                    <Eye className="mr-1 inline h-4 w-4" /> View
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-gray-200 py-2 text-sm font-medium transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700">
+                    <Eye className="h-4 w-4" /> View
                   </button>
                   <button onClick={() => setJoinModalClub(club)}
-                    className="flex-1 rounded-lg bg-sky-500 py-2 text-sm font-medium text-white hover:bg-sky-600 transition-colors">
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-sky-500 py-2 text-sm font-medium text-white transition-colors hover:bg-sky-600">
                     Join
                   </button>
                 </div>
