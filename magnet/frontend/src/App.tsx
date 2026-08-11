@@ -45,6 +45,7 @@ import StudentClubDetailsPage from './pages/ClubDetailsPage';
 import ClubAdminDashboardPage from './pages/ClubAdminDashboardPage';
 import PrincipalDashboardPage from './pages/PrincipalDashboardPage';
 import PrincipalDepartmentsPage from './pages/principal/PrincipalDepartmentsPage';
+import PrincipalDepartmentDetailsPage from './pages/principal/PrincipalDepartmentDetailsPage';
 import PrincipalClubsPage from './pages/principal/PrincipalClubsPage';
 import PrincipalAnnouncementsPage from './pages/principal/PrincipalAnnouncementsPage';
 import PrincipalLeaderboardPage from './pages/principal/PrincipalLeaderboardPage';
@@ -129,6 +130,10 @@ export default function App() {
                 <Route
                   path="/principal/departments"
                   element={<ProtectedRoute roles={['principal']}><Layout><PrincipalDepartmentsPage /></Layout></ProtectedRoute>}
+                />
+                <Route
+                  path="/principal/departments/:departmentId"
+                  element={<ProtectedRoute roles={['principal']}><Layout><PrincipalDepartmentDetailsPage /></Layout></ProtectedRoute>}
                 />
                 <Route
                   path="/principal/clubs"

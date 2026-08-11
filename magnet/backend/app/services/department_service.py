@@ -1,6 +1,6 @@
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, or_
 from sqlalchemy.orm import selectinload
 from fastapi import HTTPException, status
 from app.models.department import Department
@@ -268,3 +268,43 @@ async def get_department_students(
     students = list(result.scalars().all())
 
     return students, total
+
+
+async def get_department_users(
+    db: AsyncSession,
+    dept_id: UUID,
+    role: str = None,
+    search: str = None,
+    active: bool = False,
+    page: int = 1,
+    page_size: int = 20,
+) -> tuple[list[User], int]:
+    query = select(User).where(
+        User.department_id == dept_id,
+        User.is_active == True,
+    )
+
+    if role and role != "all":
+        query = query.where(User.role == role)
+    if search:
+        pattern = f"%{search}%"
+        query = query.where(
+            or_(
+                User.full_name.ilike(pattern),
+                User.register_number.ilike(pattern),
+                User.email.ilike(pattern),
+            )
+        )
+    if active:
+        from datetime import datetime, timedelta
+        cutoff = datetime.utcnow() - timedelta(days=30)
+        query = query.where(User.last_seen_at >= cutoff)
+
+    count_q = select(func.count()).select_from(query.subquery())
+    total = (await db.execute(count_q)).scalar()
+
+    query = query.order_by(User.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
+    result = await db.execute(query)
+    users = list(result.scalars().all())
+
+    return users, total

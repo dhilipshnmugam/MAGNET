@@ -22,6 +22,7 @@ export const eventService = {
     category?: string;
     scope?: string;
     organizer_type?: string;
+    department_id?: string;
     page?: number;
     page_size?: number;
   }) => api.get('/events', { params }),
@@ -80,6 +81,10 @@ export const departmentService = {
   toggleStatus: (id: string) => api.put(`/departments/${id}/status`),
   delete: (id: string) => api.delete(`/departments/${id}`),
   getStats: () => api.get('/departments/stats/overview'),
+  getUsers: (id: string, params?: { role?: string; search?: string; active?: boolean; page?: number; page_size?: number }) =>
+    api.get(`/departments/${id}/users`, { params }),
+  getPosts: (id: string, params?: { page?: number; page_size?: number }) =>
+    api.get(`/departments/${id}/posts`, { params }),
 };
 
 export const clubManagementService = {

@@ -9,7 +9,10 @@ export interface DeptPerformance {
   department_id: string;
   department_name: string;
   department_code: string;
+  total_users: number;
   student_count: number;
+  faculty_count: number;
+  active_users: number;
   post_count: number;
   event_count: number;
   club_count: number;
@@ -119,6 +122,44 @@ export interface PrincipalDashboard {
   }>;
 }
 
+export interface PrincipalDepartmentDetails {
+  department: {
+    id: string;
+    name: string;
+    code: string;
+    department_type: string | null;
+    description: string | null;
+    head_name: string | null;
+    head_email: string | null;
+    total_users: number;
+    students: number;
+    faculty_count: number;
+    active_users: number;
+    posts: number;
+    events: number;
+    clubs: number;
+    total_points: number;
+  };
+  top_students: Array<{
+    user_id: string;
+    name: string;
+    avatar: string | null;
+    register_number: string | null;
+    year: string | null;
+    points: number;
+    rank: number;
+  }>;
+  activity_trend: Array<{
+    day: string;
+    activities: number;
+    points: number;
+  }>;
+  posts_over_time: Array<{
+    month: string;
+    posts: number;
+  }>;
+}
+
 export const analyticsService = {
   getStudentGrowth: (months?: number) =>
     api.get('/analytics/student-growth', { params: { months } }),
@@ -146,4 +187,7 @@ export const analyticsService = {
 
   getPrincipalDashboard: () =>
     api.get('/analytics/principal-dashboard'),
+
+  getPrincipalDepartmentDetails: (department_id: string) =>
+    api.get('/analytics/principal-department', { params: { department_id } }),
 };

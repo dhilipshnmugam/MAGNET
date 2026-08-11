@@ -48,18 +48,17 @@ export default function DepartmentAdminLoginPage() {
     if (!validateForm({ email, password })) return;
 
     try {
-      await login(email, password);
+      await login(email, password, selectedDept);
       toast.success('Welcome back!');
       if (!navigatedRef.current) {
         navigatedRef.current = true;
         navigate('/department-admin');
       }
     } catch (err: any) {
-      const apiMsg = getApiError(err);
-      if (apiMsg && !apiMsg.toLowerCase().includes('invalid')) {
-        toast.error(apiMsg);
-      } else {
+      if (err?.response?.status === 401) {
         toast.error('Invalid Department, Email or Password.');
+      } else {
+        toast.error(getApiError(err) || 'Invalid Department, Email or Password.');
       }
     }
   };

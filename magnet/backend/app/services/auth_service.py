@@ -86,6 +86,24 @@ async def login_user(db: AsyncSession, data: UserLogin) -> dict:
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is deactivated")
 
+    if data.department_id is not None:
+        if user.role != "department_admin":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid Department, Email or Password.",
+            )
+        if user.department_id != data.department_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid Department, Email or Password.",
+            )
+        dept = await db.execute(select(Department).where(Department.id == data.department_id))
+        if not dept.scalar_one_or_none():
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid Department, Email or Password.",
+            )
+
     user.last_login_at = datetime.utcnow()
     await db.flush()
 
@@ -97,6 +115,13 @@ async def login_user(db: AsyncSession, data: UserLogin) -> dict:
         "access_token": access_token,
         "refresh_token": refresh_token,
         "token_type": "bearer",
+        "user": {
+            "id": str(user.id),
+            "name": user.full_name,
+            "email": user.email,
+            "role": user.role,
+            "department_id": str(user.department_id) if user.department_id else None,
+        },
     }
 
 

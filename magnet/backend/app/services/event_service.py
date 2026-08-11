@@ -115,6 +115,7 @@ async def list_events(
     category: str = None,
     scope: str = None,
     organizer_type: str = None,
+    department_id: UUID = None,
     page: int = 1, page_size: int = 20
 ) -> tuple[list[Event], int]:
     query = select(Event).options(
@@ -142,6 +143,15 @@ async def list_events(
         query = query.where(Event.club_id.is_(None), Event.department_id.isnot(None))
     elif organizer_type == "college":
         query = query.where(Event.club_id.is_(None), Event.department_id.is_(None))
+
+    if department_id:
+        query = query.where(
+            or_(
+                Event.department_id == department_id,
+                Event.club.has(Club.department_id == department_id),
+                Event.creator.has(User.department_id == department_id),
+            )
+        )
 
     now = datetime.utcnow()
     today_start = datetime.combine(now.date(), time.min)

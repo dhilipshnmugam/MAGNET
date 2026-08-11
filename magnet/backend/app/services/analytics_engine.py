@@ -53,7 +53,10 @@ async def department_performance(db: AsyncSession) -> list[dict]:
             d.id AS dept_id,
             d.name AS dept_name,
             d.code AS dept_code,
+            COUNT(DISTINCT u.id) AS total_users,
             COUNT(DISTINCT CASE WHEN u.role = 'student' THEN u.id END) AS student_count,
+            COUNT(DISTINCT CASE WHEN u.role = 'department_admin' THEN u.id END) AS faculty_count,
+            COUNT(DISTINCT CASE WHEN u.last_seen_at >= date('now', '-30 days') THEN u.id END) AS active_users,
             COUNT(DISTINCT p.id) AS post_count,
             COUNT(DISTINCT e.id) AS event_count,
             COUNT(DISTINCT c.id) AS club_count,
@@ -75,7 +78,10 @@ async def department_performance(db: AsyncSession) -> list[dict]:
             "department_id": str(r.dept_id),
             "department_name": r.dept_name,
             "department_code": r.dept_code,
+            "total_users": r.total_users,
             "student_count": r.student_count,
+            "faculty_count": r.faculty_count,
+            "active_users": r.active_users,
             "post_count": r.post_count,
             "event_count": r.event_count,
             "club_count": r.club_count,
@@ -469,4 +475,125 @@ async def principal_dashboard(db: AsyncSession) -> dict:
             "total_departments": overview.total_departments,
         },
         "department_performance": dept_performance,
+    }
+
+
+# ══════════════════════════════════════════════
+#  10. PRINCIPAL DEPARTMENT DETAILS (read-only drill-down)
+# ══════════════════════════════════════════════
+
+async def principal_department_details(db: AsyncSession, department_id: UUID) -> dict:
+    did = str(department_id)
+
+    dept_q = text("""
+        SELECT
+            d.id AS dept_id,
+            d.name AS dept_name,
+            d.code AS dept_code,
+            d.department_type AS dept_type,
+            d.description AS dept_desc,
+            h.full_name AS head_name,
+            h.email AS head_email,
+            COUNT(DISTINCT u.id) AS total_users,
+            COUNT(DISTINCT CASE WHEN u.role = 'student' THEN u.id END) AS students,
+            COUNT(DISTINCT CASE WHEN u.role = 'department_admin' THEN u.id END) AS faculty_count,
+            COUNT(DISTINCT CASE WHEN u.last_seen_at >= date('now', '-30 days') THEN u.id END) AS active_users,
+            COUNT(DISTINCT p.id) AS posts,
+            COUNT(DISTINCT e.id) AS events,
+            COUNT(DISTINCT cl.id) AS clubs,
+            COALESCE(SUM(pt.points_value), 0) AS total_points
+        FROM departments d
+        LEFT JOIN users h ON h.id = d.head_id
+        LEFT JOIN users u ON u.department_id = d.id AND u.is_active = 1
+        LEFT JOIN posts p ON p.author_id = u.id
+        LEFT JOIN events e ON e.creator_id = u.id
+        LEFT JOIN clubs cl ON cl.department_id = d.id AND cl.is_active = 1
+        LEFT JOIN points pt ON pt.user_id = u.id
+        WHERE d.id = :dept_id
+        GROUP BY d.id, d.name, d.code, d.department_type, d.description, h.full_name, h.email
+    """)
+    dept_result = await db.execute(dept_q, {"dept_id": did})
+    dept_row = dept_result.one_or_none()
+    if dept_row is None:
+        return None
+
+    top_students_q = text("""
+        SELECT
+            u.id, u.full_name, u.avatar_url, u.register_number, u.year,
+            COALESCE(SUM(pt.points_value), 0) AS total_points,
+            ROW_NUMBER() OVER (ORDER BY SUM(pt.points_value) DESC) AS rank
+        FROM users u
+        LEFT JOIN points pt ON pt.user_id = u.id
+        WHERE u.department_id = :dept_id AND u.role = 'student' AND u.is_active = 1
+        GROUP BY u.id, u.full_name, u.avatar_url, u.register_number, u.year
+        ORDER BY total_points DESC
+        LIMIT 10
+    """)
+    top_result = await db.execute(top_students_q, {"dept_id": did})
+    top_students = [
+        {
+            "user_id": str(r.id),
+            "name": r.full_name,
+            "avatar": r.avatar_url,
+            "register_number": r.register_number,
+            "year": r.year,
+            "points": r.total_points,
+            "rank": r.rank,
+        }
+        for r in top_result.all()
+    ]
+
+    activity_q = text("""
+        SELECT
+            DATE(pt.created_at) AS day,
+            COUNT(*) AS activities,
+            COALESCE(SUM(pt.points_value), 0) AS points
+        FROM points pt
+        JOIN users u ON pt.user_id = u.id
+        WHERE u.department_id = :dept_id
+          AND pt.created_at >= date('now', '-30 days')
+        GROUP BY DATE(pt.created_at)
+        ORDER BY DATE(pt.created_at) ASC
+    """)
+    activity_result = await db.execute(activity_q, {"dept_id": did})
+    activity_trend = [
+        {"day": r.day, "activities": r.activities, "points": r.points}
+        for r in activity_result.all()
+    ]
+
+    posts_over_time_q = text("""
+        SELECT
+            strftime('%Y-%m', p.created_at) AS month,
+            COUNT(*) AS posts
+        FROM posts p
+        JOIN users u ON p.author_id = u.id
+        WHERE u.department_id = :dept_id
+          AND p.created_at >= date('now', '-6 months')
+        GROUP BY strftime('%Y-%m', p.created_at)
+        ORDER BY strftime('%Y-%m', p.created_at) ASC
+    """)
+    posts_result = await db.execute(posts_over_time_q, {"dept_id": did})
+    posts_over_time = [{"month": r.month, "posts": r.posts} for r in posts_result.all()]
+
+    return {
+        "department": {
+            "id": str(dept_row.dept_id),
+            "name": dept_row.dept_name,
+            "code": dept_row.dept_code,
+            "department_type": dept_row.dept_type,
+            "description": dept_row.dept_desc,
+            "head_name": dept_row.head_name,
+            "head_email": dept_row.head_email,
+            "total_users": dept_row.total_users,
+            "students": dept_row.students,
+            "faculty_count": dept_row.faculty_count,
+            "active_users": dept_row.active_users,
+            "posts": dept_row.posts,
+            "events": dept_row.events,
+            "clubs": dept_row.clubs,
+            "total_points": dept_row.total_points,
+        },
+        "top_students": top_students,
+        "activity_trend": activity_trend,
+        "posts_over_time": posts_over_time,
     }

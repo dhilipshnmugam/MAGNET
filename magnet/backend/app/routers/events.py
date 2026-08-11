@@ -25,13 +25,14 @@ async def list_events(
     category: str = Query(None),
     scope: str = Query(None),
     organizer_type: str = Query(None),
+    department_id: UUID = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
     events, total = await event_service.list_events(
-        db, user, search, event_type, category, scope, organizer_type, page, page_size
+        db, user, search, event_type, category, scope, organizer_type, department_id, page, page_size
     )
     return PaginatedResponse(
         data=[EventOut.model_validate(e).model_dump() for e in events],

@@ -4,7 +4,7 @@ from sqlalchemy import select, func, extract
 from typing import Optional
 from uuid import UUID
 from datetime import datetime, timedelta, date
-from app.dependencies import get_db, get_current_user
+from app.dependencies import get_db, get_current_user, require_principal
 from app.models.user import User
 from app.models.post import Post
 from app.models.activity import UserActivity
@@ -281,4 +281,20 @@ async def get_principal_dashboard(
     current_user: User = Depends(get_current_user),
 ):
     data = await analytics_engine.principal_dashboard(db)
+    return ResponseModel(data=data)
+
+
+@router.get("/principal-department")
+async def get_principal_department_details(
+    department_id: str = Query(...),
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_principal),
+):
+    try:
+        dept_uuid = UUID(department_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid department ID")
+    data = await analytics_engine.principal_department_details(db, dept_uuid)
+    if data is None:
+        raise HTTPException(status_code=404, detail="Department not found")
     return ResponseModel(data=data)

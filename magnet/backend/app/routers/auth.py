@@ -25,7 +25,12 @@ async def register(data: UserRegister, db: AsyncSession = Depends(get_db)):
 @router.post("/login", response_model=ResponseModel)
 async def login(data: UserLogin, db: AsyncSession = Depends(get_db)):
     result = await auth_service.login_user(db, data)
-    return ResponseModel(data=result, message="Login successful")
+    message = (
+        "Department Admin login successful"
+        if result.get("user", {}).get("role") == "department_admin"
+        else "Login successful"
+    )
+    return ResponseModel(data=result, message=message)
 
 
 @router.post("/refresh", response_model=ResponseModel)

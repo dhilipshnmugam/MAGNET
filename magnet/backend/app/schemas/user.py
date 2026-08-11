@@ -34,6 +34,7 @@ class UserRegister(BaseModel):
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+    department_id: Optional[UUID] = None
 
 
 class UserUpdate(BaseModel):
