@@ -6,7 +6,7 @@ import { Post } from '../types';
 import { cn } from '../utils/helpers';
 import {
   Search as SearchIcon, Users, Building2, Club as ClubIcon, FileText,
-  X, TrendingUp, Compass, RefreshCw, AlertCircle, Play, Heart, MessageCircle, Eye,
+  X, TrendingUp, Compass, RefreshCw, AlertCircle, Play, Heart, MessageCircle, Eye, Code,
 } from 'lucide-react';
 
 const FILTER_TABS = [
@@ -15,6 +15,7 @@ const FILTER_TABS = [
   { value: 'clubs', label: 'Clubs' },
   { value: 'departments', label: 'Departments' },
   { value: 'posts', label: 'Posts' },
+  { value: 'projects', label: 'Projects' },
 ] as const;
 
 const ROLE_BADGE: Record<string, { bg: string; text: string }> = {
@@ -134,6 +135,35 @@ function DepartmentCard({ result }: { result: any }) {
   );
 }
 
+function ProjectCard({ result }: { result: any }) {
+  const navigate = useNavigate();
+  return (
+    <div
+      onClick={() => navigate(`/projects/${result.id}`)}
+      className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-4 transition-all hover:shadow-md cursor-pointer dark:border-gray-700 dark:bg-gray-800"
+    >
+      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-fuchsia-500 to-purple-600 text-lg font-bold text-white">
+        {result.name?.charAt(0) || '?'}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-semibold truncate">{result.name}</p>
+        <div className="flex items-center gap-2 mt-0.5">
+          <span className="text-xs rounded-full bg-gray-100 dark:bg-gray-700 px-2 py-0.5 capitalize text-gray-600 dark:text-gray-300">
+            {result.status || 'planning'}
+          </span>
+          <span className="text-xs text-gray-400">{result.member_count || 0} members</span>
+        </div>
+        {result.owner?.full_name && (
+          <p className="text-xs text-gray-500 truncate mt-0.5">by {result.owner.full_name}</p>
+        )}
+        {result.description && (
+          <p className="text-xs text-gray-400 truncate mt-0.5">{result.description}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function ResultSection({ title, icon: Icon, children, total, filterTab, onSeeAll, contentClass = 'space-y-2' }: {
   title: string; icon: any; children: React.ReactNode; total: number;
   filterTab: string; onSeeAll: () => void; contentClass?: string;
@@ -160,6 +190,7 @@ const EMPTY_SUGGESTIONS = [
   { icon: Users, text: 'Search for people by name, email, or register number' },
   { icon: ClubIcon, text: 'Find clubs by name, category, or domain' },
   { icon: FileText, text: 'Search posts by content, hashtags, or title' },
+  { icon: Code, text: 'Discover projects by name, description, or category' },
 ];
 
 function ExploreTile({ post }: { post: Post }) {
@@ -361,8 +392,10 @@ export default function SearchPage() {
   const clubs = allData.clubs?.data || [];
   const departments = allData.departments?.data || [];
   const posts = allData.posts?.data || [];
+  const projects = allData.projects?.data || [];
   const totalResults = (allData.users?.total || 0) + (allData.clubs?.total || 0) +
-    (allData.departments?.total || 0) + (allData.posts?.total || 0);
+    (allData.departments?.total || 0) + (allData.posts?.total || 0) +
+    (allData.projects?.total || 0);
 
   const renderAllResults = () => (
     <div className="space-y-6">
@@ -373,18 +406,18 @@ export default function SearchPage() {
           {users.map((u: any) => <UserCard key={u.id} result={u} />)}
         </ResultSection>
       )}
-      {clubs.length > 0 && (
-        <ResultSection title="Clubs" icon={ClubIcon} total={allData.clubs?.total || 0}
-          filterTab="clubs" onSeeAll={() => handleTabChange('clubs')}
-        >
-          {clubs.map((c: any) => <ClubCard key={c.id} result={c} />)}
-        </ResultSection>
-      )}
       {departments.length > 0 && (
         <ResultSection title="Departments" icon={Building2} total={allData.departments?.total || 0}
           filterTab="departments" onSeeAll={() => handleTabChange('departments')}
         >
           {departments.map((d: any) => <DepartmentCard key={d.id} result={d} />)}
+        </ResultSection>
+      )}
+      {clubs.length > 0 && (
+        <ResultSection title="Clubs" icon={ClubIcon} total={allData.clubs?.total || 0}
+          filterTab="clubs" onSeeAll={() => handleTabChange('clubs')}
+        >
+          {clubs.map((c: any) => <ClubCard key={c.id} result={c} />)}
         </ResultSection>
       )}
       {posts.length > 0 && (
@@ -396,6 +429,13 @@ export default function SearchPage() {
               <ExploreTile post={p} />
             </div>
           ))}
+        </ResultSection>
+      )}
+      {projects.length > 0 && (
+        <ResultSection title="Projects" icon={Code} total={allData.projects?.total || 0}
+          filterTab="projects" onSeeAll={() => handleTabChange('projects')}
+        >
+          {projects.map((p: any) => <ProjectCard key={p.id} result={p} />)}
         </ResultSection>
       )}
     </div>
@@ -419,6 +459,8 @@ export default function SearchPage() {
             ))}
           </div>
         );
+      case 'projects':
+        return projects.map((p: any) => <ProjectCard key={p.id} result={p} />);
       default:
         return renderAllResults();
     }
@@ -433,7 +475,7 @@ export default function SearchPage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           className="w-full rounded-2xl border border-gray-200 bg-gray-50 py-3.5 pl-12 pr-12 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20 dark:border-gray-700 dark:bg-gray-800/50"
-          placeholder="Search people, clubs, departments, posts..."
+          placeholder="Search people, departments, clubs, posts, projects..."
           autoFocus
         />
         {query && (

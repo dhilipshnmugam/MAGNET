@@ -110,6 +110,10 @@ class ClubMemberOut(BaseModel):
     user_name: Optional[str] = None
     user_email: Optional[str] = None
     user_avatar: Optional[str] = None
+    department_name: Optional[str] = None
+    year: Optional[str] = None
+    register_number: Optional[str] = None
+    roles: Optional[list[str]] = []
 
     class Config:
         from_attributes = True

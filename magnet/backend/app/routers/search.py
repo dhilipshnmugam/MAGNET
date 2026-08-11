@@ -7,7 +7,7 @@ from app.services import search_service
 
 router = APIRouter(prefix="/search", tags=["Search"])
 
-VALID_FILTERS = {"all", "people", "clubs", "departments", "posts"}
+VALID_FILTERS = {"all", "people", "clubs", "departments", "posts", "projects"}
 
 
 @router.get("", response_model=ResponseModel)

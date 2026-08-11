@@ -49,6 +49,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const logout = useCallback(() => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    setUser(null);
+    setStudent(null);
+    setHod(null);
+  }, []);
+
+  useEffect(() => {
+    const handleAuthExpired = () => logout();
+    window.addEventListener('auth:expired', handleAuthExpired);
+    return () => window.removeEventListener('auth:expired', handleAuthExpired);
+  }, [logout]);
+
   useEffect(() => {
     refreshUser().catch(() => {});
   }, [refreshUser]);
@@ -77,14 +91,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const logout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    setUser(null);
-    setStudent(null);
-    setHod(null);
   };
 
   const updateUser = (data: Partial<User>) => {

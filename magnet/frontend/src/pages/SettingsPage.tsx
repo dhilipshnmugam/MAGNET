@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { Settings, Moon, Sun, Bell, Lock, User } from 'lucide-react';
@@ -6,6 +7,7 @@ import { Settings, Moon, Sun, Bell, Lock, User } from 'lucide-react';
 export default function SettingsPage() {
   const { isDark, toggle } = useTheme();
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -41,7 +43,7 @@ export default function SettingsPage() {
         </div>
 
         <div className="p-5">
-          <button onClick={() => { logout(); window.location.href = '/login'; }} className="btn-danger">Log Out</button>
+          <button onClick={() => { logout(); navigate('/login'); }} className="btn-danger">Log Out</button>
         </div>
       </div>
     </div>

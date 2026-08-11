@@ -179,6 +179,46 @@ async def get_feed(
     return posts, total
 
 
+async def get_club_posts(
+    db: AsyncSession, club_id: UUID, viewer: User,
+    page: int = 1, page_size: int = 20
+) -> tuple[list[Post], int]:
+    query = select(Post).options(
+        selectinload(Post.author).selectinload(User.department),
+        selectinload(Post.media),
+    ).where(
+        Post.club_id == club_id,
+        Post.is_approved == True,
+    ).order_by(Post.is_pinned.desc(), Post.created_at.desc())
+
+    count_q = select(func.count()).select_from(query.subquery())
+    total = (await db.execute(count_q)).scalar()
+
+    query = query.offset((page - 1) * page_size).limit(page_size)
+    result = await db.execute(query)
+    posts = list(result.scalars().unique().all())
+
+    if posts:
+        post_ids = [p.id for p in posts]
+        likes_result = await db.execute(
+            select(Like.post_id).where(Like.user_id == viewer.id, Like.post_id.in_(post_ids))
+        )
+        like_ids = set(likes_result.scalars().all())
+        bookmarks_result = await db.execute(
+            select(Bookmark.post_id).where(Bookmark.user_id == viewer.id, Bookmark.post_id.in_(post_ids))
+        )
+        bookmark_ids = set(bookmarks_result.scalars().all())
+        for post in posts:
+            post.is_liked_by_user = post.id in like_ids
+            post.is_bookmarked_by_user = post.id in bookmark_ids
+    else:
+        for post in posts:
+            post.is_liked_by_user = False
+            post.is_bookmarked_by_user = False
+
+    return posts, total
+
+
 async def get_user_posts(
     db: AsyncSession, user_id: UUID, viewer: User,
     page: int = 1, page_size: int = 20

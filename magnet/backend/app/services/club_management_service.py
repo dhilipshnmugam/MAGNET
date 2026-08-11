@@ -5,9 +5,8 @@ from sqlalchemy import select, func, and_, or_
 from sqlalchemy.orm import selectinload
 from sqlalchemy import inspect as sa_inspect
 from fastapi import HTTPException, status
-from app.models.club import Club, ClubMember, ClubJoinRequest
+from app.models.club import Club, ClubMember, ClubJoinRequest, ClubEvent
 from app.models.post import Post
-from app.models.event import Event
 from app.models.user import User
 from app.models.department import Department
 
@@ -42,9 +41,11 @@ async def _get_post_count(db: AsyncSession, club_id: UUID) -> int:
     )).scalar() or 0
 
 
-async def _get_event_count(db: AsyncSession, club_admin_id: UUID) -> int:
+async def _get_event_count(db: AsyncSession, club_id: UUID) -> int:
     return (await db.execute(
-        select(func.count()).select_from(Event).where(Event.creator_id == club_admin_id)
+        select(func.count()).select_from(ClubEvent).where(
+            and_(ClubEvent.club_id == club_id, ClubEvent.is_active == True)
+        )
     )).scalar() or 0
 
 
@@ -208,9 +209,7 @@ async def get_club_by_id(db: AsyncSession, club_id: UUID) -> dict:
 
     member_count = await _get_member_count(db, club_id)
     post_count = await _get_post_count(db, club_id)
-    event_count = 0
-    if club.club_admin_id:
-        event_count = await _get_event_count(db, club.club_admin_id)
+    event_count = await _get_event_count(db, club_id)
 
     data = _build_club_out(club, member_count)
     data["post_count"] = post_count
@@ -513,13 +512,14 @@ async def get_club_members(
     db: AsyncSession, club_id: UUID, page: int = 1, page_size: int = 50
 ) -> tuple[list, int]:
     query = select(ClubMember).options(
-        selectinload(ClubMember.user),
+        selectinload(ClubMember.user).selectinload(User.department),
+        selectinload(ClubMember.roles),
     ).where(ClubMember.club_id == club_id)
 
     count_q = select(func.count()).select_from(query.subquery())
     total = (await db.execute(count_q)).scalar()
 
-    query = query.order_by(ClubMember.joined_at.desc()).offset((page - 1) * page_size).limit(page_size)
+    query = query.order_by(ClubMember.joined_at.asc()).offset((page - 1) * page_size).limit(page_size)
     result = await db.execute(query)
     members = list(result.scalars().unique().all())
 
@@ -564,6 +564,21 @@ async def get_user_club_membership(db: AsyncSession, club_id: UUID, user_id: UUI
     result = await db.execute(
         select(ClubMember).where(
             and_(ClubMember.club_id == club_id, ClubMember.user_id == user_id)
+        )
+    )
+    return result.scalar_one_or_none()
+
+
+async def get_user_join_request_status(
+    db: AsyncSession, club_id: UUID, user_id: UUID
+) -> ClubJoinRequest | None:
+    result = await db.execute(
+        select(ClubJoinRequest).where(
+            and_(
+                ClubJoinRequest.club_id == club_id,
+                ClubJoinRequest.user_id == user_id,
+                ClubJoinRequest.status == "pending",
+            )
         )
     )
     return result.scalar_one_or_none()

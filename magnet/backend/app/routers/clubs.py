@@ -193,8 +193,14 @@ async def get_membership(
             "is_member": True,
             "role": membership.role,
             "joined_at": membership.joined_at,
+            "request_status": None,
         })
-    return ResponseModel(data={"is_member": False, "role": None})
+    pending = await club_management_service.get_user_join_request_status(db, club_id, user.id)
+    return ResponseModel(data={
+        "is_member": False,
+        "role": None,
+        "request_status": "pending" if pending else None,
+    })
 
 
 @router.get("/{club_id}/join-requests", response_model=PaginatedResponse)
@@ -250,7 +256,7 @@ async def get_club_members(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
-    admin: User = Depends(require_club_admin),
+    user: User = Depends(get_current_user),
 ):
     members, total = await club_management_service.get_club_members(db, club_id, page, page_size)
     data = [
@@ -263,6 +269,10 @@ async def get_club_members(
             user_name=m.user.full_name if m.user else None,
             user_email=m.user.email if m.user else None,
             user_avatar=m.user.avatar_url if m.user else None,
+            department_name=m.user.department.name if m.user and m.user.department else None,
+            year=m.user.year if m.user else None,
+            register_number=m.user.register_number if m.user else None,
+            roles=[r.role for r in m.roles],
         ).model_dump()
         for m in members
     ]

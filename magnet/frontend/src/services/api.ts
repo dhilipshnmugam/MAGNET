@@ -68,7 +68,7 @@ api.interceptors.response.use(
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         if (!window.location.pathname.startsWith('/login')) {
-          window.location.href = '/login';
+          window.dispatchEvent(new Event('auth:expired'));
         }
         return Promise.reject(error);
       }
@@ -91,7 +91,7 @@ api.interceptors.response.use(
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         if (!window.location.pathname.startsWith('/login')) {
-          window.location.href = '/login';
+          window.dispatchEvent(new Event('auth:expired'));
         }
         return Promise.reject(refreshError);
       } finally {

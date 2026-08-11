@@ -6,9 +6,28 @@ from pydantic import BaseModel
 from app.dependencies import get_db, get_current_user, require_club_admin
 from app.models.user import User
 from app.schemas.common import ResponseModel, PaginatedResponse
-from app.services import club_content_service
+from app.schemas.post import PostOut
+from app.services import club_content_service, post_service
 
 router = APIRouter(prefix="/clubs/{club_id}", tags=["Club Content"])
+
+
+# --- Posts ---
+
+@router.get("/posts", response_model=PaginatedResponse)
+async def list_posts(
+    club_id: UUID,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    posts, total = await post_service.get_club_posts(db, club_id, user, page, page_size)
+    return PaginatedResponse(
+        data=[PostOut.model_validate(p).model_dump() for p in posts],
+        total=total, page=page, page_size=page_size,
+        has_next=(page * page_size) < total,
+    )
 
 
 # --- Events ---

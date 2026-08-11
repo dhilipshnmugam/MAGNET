@@ -108,6 +108,8 @@ export const clubManagementService = {
   getDepartmentClubs: (deptId: string) => api.get(`/clubs/department/${deptId}`),
   getEvents: (clubId: string, params?: { page?: number; page_size?: number }) =>
     api.get(`/clubs/${clubId}/events`, { params }),
+  getClubPosts: (clubId: string, params?: { page?: number; page_size?: number }) =>
+    api.get(`/clubs/${clubId}/posts`, { params }),
   createEvent: (clubId: string, data: any) => api.post(`/clubs/${clubId}/events`, data),
   deleteEvent: (clubId: string, eventId: string) => api.delete(`/clubs/${clubId}/events/${eventId}`),
   getGallery: (clubId: string, params?: { page?: number; page_size?: number }) =>

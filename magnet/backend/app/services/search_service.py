@@ -6,6 +6,7 @@ from app.models.user import User
 from app.models.club import Club, ClubMember
 from app.models.department import Department
 from app.models.post import Post, Like, Bookmark
+from app.models.project import Project
 from app.schemas.post import PostOut
 
 
@@ -53,6 +54,24 @@ def _build_department_result(d: Department, student_count: int = 0) -> dict:
         "hod_email": hod_email,
         "student_count": student_count,
         "entity_type": "department",
+    }
+
+
+def _build_project_result(p: Project) -> dict:
+    return {
+        "id": str(p.id),
+        "name": p.name,
+        "description": (p.description[:200] + ("..." if len(p.description) > 200 else "")) if p.description else None,
+        "tech_stack": p.tech_stack,
+        "category": p.category,
+        "status": p.status,
+        "owner": (
+            {"id": str(p.owner.id), "full_name": p.owner.full_name, "avatar_url": p.owner.avatar_url}
+            if p.owner else None
+        ),
+        "member_count": len(p.members),
+        "created_at": p.created_at.isoformat() if p.created_at else None,
+        "entity_type": "project",
     }
 
 
@@ -253,6 +272,45 @@ async def global_search(
         results["posts"] = {
             "data": posts,
             "total": posts_total.scalar() or 0,
+        }
+
+    if filter_type in ("all", "projects"):
+        projects_query = (
+            select(Project)
+            .options(
+                selectinload(Project.owner),
+                selectinload(Project.members),
+            )
+            .where(
+                or_(
+                    Project.name.ilike(pattern),
+                    Project.description.ilike(pattern),
+                    Project.category.ilike(pattern),
+                ),
+            )
+            .order_by(
+                Project.name.ilike(q).desc(),
+                Project.name.ilike(f"{q}%").desc(),
+                Project.created_at.desc(),
+            )
+            .offset(offset)
+            .limit(limit)
+        )
+        projects = [_build_project_result(p) for p in (await db.execute(projects_query)).scalars().unique().all()]
+        projects_total = await db.execute(
+            select(func.count()).select_from(
+                select(Project).where(
+                    or_(
+                        Project.name.ilike(pattern),
+                        Project.description.ilike(pattern),
+                        Project.category.ilike(pattern),
+                    ),
+                ).subquery()
+            )
+        )
+        results["projects"] = {
+            "data": projects,
+            "total": projects_total.scalar() or 0,
         }
 
     return results
