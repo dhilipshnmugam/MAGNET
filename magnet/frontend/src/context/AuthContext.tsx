@@ -11,7 +11,7 @@ interface AuthContextType {
   isLoading: boolean;
   isInitializing: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string, departmentId?: string) => Promise<void>;
+  login: (email: string, password: string, departmentId?: string, clubId?: string, userIdentifier?: string) => Promise<void>;
   register: (data: any) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
@@ -67,13 +67,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refreshUser().catch(() => {});
   }, [refreshUser]);
 
-  const login = async (email: string, password: string, departmentId?: string) => {
+  const login = async (email: string, password: string, departmentId?: string, clubId?: string, userIdentifier?: string) => {
     setIsLoading(true);
     try {
       const res = await authService.login({
-        email,
+        ...(userIdentifier ? { user_identifier: userIdentifier } : { email }),
         password,
         ...(departmentId ? { department_id: departmentId } : {}),
+        ...(clubId ? { club_id: clubId } : {}),
       });
       const { access_token, refresh_token } = res.data.data;
       localStorage.setItem('access_token', access_token);

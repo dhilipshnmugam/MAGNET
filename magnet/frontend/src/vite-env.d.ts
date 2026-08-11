@@ -14,6 +14,7 @@ declare module 'lucide-react' {
   export const Eye: React.ComponentType<any>;
   export const EyeOff: React.ComponentType<any>;
   export const AlertCircle: React.ComponentType<any>;
+  export const CreditCard: React.ComponentType<any>;
   export const AlertTriangle: React.ComponentType<any>;
   export const User: React.ComponentType<any>;
   export const Shield: React.ComponentType<any>;

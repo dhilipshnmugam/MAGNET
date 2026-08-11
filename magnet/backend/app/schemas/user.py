@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, model_validator
 from typing import Optional, List
 from uuid import UUID
 from datetime import datetime
@@ -32,9 +32,17 @@ class UserRegister(BaseModel):
 
 
 class UserLogin(BaseModel):
-    email: EmailStr
+    email: Optional[EmailStr] = None
     password: str
+    user_identifier: Optional[str] = None
     department_id: Optional[UUID] = None
+    club_id: Optional[UUID] = None
+
+    @model_validator(mode="after")
+    def _check_identifier(self):
+        if not self.email and not (self.user_identifier or "").strip():
+            raise ValueError("email or user_identifier is required")
+        return self
 
 
 class UserUpdate(BaseModel):

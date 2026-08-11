@@ -1,11 +1,12 @@
 from uuid import UUID
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 from fastapi import HTTPException, status
 from app.models.user import User, Student, Hod
 from app.models.department import Department
+from app.models.club import Club, ClubMember
 from app.models.notification import NotificationPreference
 from app.models.points import Leaderboard
 from app.schemas.user import UserRegister, UserLogin, UserUpdate, StudentProfileUpdate, HodProfileUpdate
@@ -16,6 +17,29 @@ from app.utils.security import (
 )
 from app.utils.email import send_verification_email, send_password_reset_email
 from app.utils.validators import validate_password_strength
+
+
+async def _find_user_by_identifier(db: AsyncSession, identifier: str) -> User | None:
+    """Resolve a user by their email or employee ID (ID card)."""
+    if not identifier:
+        return None
+    value = identifier.strip()
+    if not value:
+        return None
+
+    result = await db.execute(
+        select(User).where(func.lower(User.email) == value.lower())
+    )
+    user = result.scalar_one_or_none()
+    if user:
+        return user
+
+    result = await db.execute(
+        select(User)
+        .join(Hod, Hod.user_id == User.id)
+        .where(Hod.employee_id == value)
+    )
+    return result.scalar_one_or_none()
 
 
 async def register_user(db: AsyncSession, data: UserRegister) -> User:
@@ -77,8 +101,11 @@ async def register_user(db: AsyncSession, data: UserRegister) -> User:
 
 
 async def login_user(db: AsyncSession, data: UserLogin) -> dict:
-    result = await db.execute(select(User).where(User.email == data.email))
-    user = result.scalar_one_or_none()
+    if (data.user_identifier or "").strip():
+        user = await _find_user_by_identifier(db, data.user_identifier)
+    else:
+        result = await db.execute(select(User).where(User.email == data.email))
+        user = result.scalar_one_or_none()
 
     if not user or not verify_password(data.password, user.password_hash):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
@@ -87,21 +114,51 @@ async def login_user(db: AsyncSession, data: UserLogin) -> dict:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is deactivated")
 
     if data.department_id is not None:
-        if user.role != "department_admin":
+        if user.role != "department_admin" or user.department_id != data.department_id:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid Department, Email or Password.",
             )
-        if user.department_id != data.department_id:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid Department, Email or Password.",
+        dept = await db.execute(
+            select(Department).where(
+                Department.id == data.department_id, Department.is_active == True
             )
-        dept = await db.execute(select(Department).where(Department.id == data.department_id))
+        )
         if not dept.scalar_one_or_none():
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid Department, Email or Password.",
+            )
+
+    if data.club_id is not None:
+        if user.role != "club_admin":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid Club, Email or Password.",
+            )
+        club_result = await db.execute(
+            select(Club).where(Club.id == data.club_id, Club.is_active == True)
+        )
+        club = club_result.scalar_one_or_none()
+        if not club:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid Club, Email or Password.",
+            )
+        authorized = club.owner_id == user.id or club.club_admin_id == user.id
+        if not authorized:
+            membership_result = await db.execute(
+                select(ClubMember).where(
+                    ClubMember.club_id == data.club_id,
+                    ClubMember.user_id == user.id,
+                    ClubMember.role.in_(["owner", "admin"]),
+                )
+            )
+            authorized = membership_result.scalar_one_or_none() is not None
+        if not authorized:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid Club, Email or Password.",
             )
 
     user.last_login_at = datetime.utcnow()

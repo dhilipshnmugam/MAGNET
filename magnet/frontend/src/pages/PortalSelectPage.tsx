@@ -10,7 +10,7 @@ export default function PortalSelectPage() {
       link: '/login/student',
     },
     {
-      title: 'Department Admin',
+      title: 'Department',
       icon: BookOpen,
       color: 'from-emerald-500 to-teal-600',
       link: '/login/department-admin',
@@ -28,7 +28,7 @@ export default function PortalSelectPage() {
       link: '/login/super-admin',
     },
     {
-      title: 'Club Portal',
+      title: 'Club',
       icon: Users,
       color: 'from-rose-500 to-pink-600',
       link: '/login/club',
