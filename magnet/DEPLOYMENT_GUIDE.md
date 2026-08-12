@@ -6,7 +6,7 @@ Magnet is a social media platform with the following architecture:
 
 ```
 ┌──────────────┐     ┌──────────────┐     ┌──────────────────┐
-│   Frontend    │────▶│   Backend     │────▶│  Supabase DB     │
+│   Frontend    │────▶│   Backend     │────▶│  Render Postgres │
 │ (Render SPA)  │     │   (Render)    │     │  (PostgreSQL)    │
 └──────────────┘     └──────┬───────┘     └──────────────────┘
                             │
@@ -22,7 +22,7 @@ Magnet is a social media platform with the following architecture:
 |------------------|--------------------------|-----------------------------|
 | Frontend         | Render (static site)     | React SPA (Vite + TypeScript) |
 | Backend          | Render (native Python)   | FastAPI (Python 3.11)       |
-| Database         | Supabase or Render Postgres | PostgreSQL (asyncpg)      |
+| Database         | Render PostgreSQL        | PostgreSQL (asyncpg)        |
 | File Storage     | Cloudinary (optional)    | Image/video uploads         |
 | Push Notifications | Firebase Cloud Messaging (optional) | Web push         |
 
@@ -38,95 +38,60 @@ Magnet is a social media platform with the following architecture:
 
 ---
 
-## 1. Database Setup (Supabase — recommended)
+## 1. Database Setup (Render PostgreSQL)
 
-### 1.1 Create a Supabase Project
+The database is defined directly in the `render.yaml` blueprint, so **Render creates it automatically** when you deploy — no manual setup or connection string needed.
 
-1. Go to [https://supabase.com](https://supabase.com) and sign up/log in
-2. Click **"New project"**
-3. Choose an organization (create one if needed)
-4. Fill in:
-   - **Database Name:** `magnet`
-   - **Database Password:** Generate a strong password and **save it immediately**
-   - **Region:** Choose closest to your users (e.g., `US East` or `EU West`)
-5. Click **"Create new project"** (takes ~2 minutes)
+```yaml
+# From magnet/render.yaml
+databases:
+  - name: magnet-db
+    plan: free
+    region: oregon
+    databaseName: magnet
+    user: magnet
+```
 
-### 1.2 Get Connection String
+The backend's `DATABASE_URL` is wired to it automatically:
 
-1. In your project dashboard, go to **Settings** → **Database**
-2. Scroll to **Connection string**
-3. Switch to **URI** format
-4. Copy the **Transaction** mode connection (required for Supavisor/pooling):
+```yaml
+- key: DATABASE_URL
+  fromDatabase:
+    name: magnet-db
+    property: connectionString
+```
+
+### 1.1 How It Works
+
+1. When you create the blueprint (New + → Blueprint → MAGNET repo), Render provisions the database alongside the two services
+2. The backend connects over Render's private network using the internal connection string
+3. The backend auto-converts `postgresql://` → `postgresql+asyncpg://` at startup, then creates all tables via its built-in migrations (`create_all` runs on boot)
+
+> **⚠️ Important:** Render **free** Postgres databases **expire after 30 days**. For a permanent database, use a paid plan (e.g., `basic-256mb`) or see 1.3 for a manual standalone database.
+
+### 1.2 Creating the DB Manually (Optional)
+
+If you prefer to create the database yourself instead of via the blueprint:
+
+1. Go to [https://dashboard.render.com](https://dashboard.render.com) → **New +** → **PostgreSQL**
+2. Name it `magnet-db`, choose **Free** plan, click **Create**
+3. Wait for status **Available** (~1 min), then copy the **Internal Database URL** (starts with `postgresql://`)
+4. Paste it into the backend's `DATABASE_URL` env var (Render Dashboard → Environment)
+
+### 1.3 Alternative: Supabase
+
+Prefer an external managed Postgres? Supabase also works:
+
+1. Go to [https://supabase.com](https://supabase.com) → **New project** → name `magnet`, set a strong password, choose a region
+2. Go to **Settings → Database → Connection string** → copy the **Transaction mode (port 6543)** URI:
 
 ```
 postgresql://postgres.[PROJECT-REF]:[YOUR-PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres
 ```
 
-> **Important:** Use **Transaction mode (port 6543)**, not Session mode (port 5432). Transaction mode is required for serverless platforms like Render that don't maintain persistent connections.
+3. Set it as the backend's `DATABASE_URL` env var (add `?sslmode=require` if the backend reports SSL issues)
 
-### 1.3 Run Migrations
-
-If you have Alembic migrations:
-
-```bash
-# Run locally against the Supabase database
-cd magnet/backend
-
-# Set DATABASE_URL in your .env
-echo "DATABASE_URL=postgresql://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres" >> .env
-
-# Run all migrations
-alembic upgrade head
-```
-
-If you have raw SQL schemas, go to Supabase Dashboard → **SQL Editor** and paste your migration files in order.
-
-### 1.4 Create Initial Admin User
-
-Use the Supabase SQL Editor or your backend API to create the first admin:
-
-```sql
--- Run in Supabase SQL Editor
--- Replace with your hashed password (use passlib to generate)
-INSERT INTO users (email, username, hashed_password, is_admin, is_active, created_at)
-VALUES (
-    'admin@magnet.app',
-    'admin',
-    '$2b$12$YOUR_HASHED_PASSWORD_HERE',
-    true,
-    true,
-    NOW()
-);
-```
-
-Or use the API endpoint once the backend is deployed.
-
-### 1.5 Enable Row Level Security (Recommended)
-
-```sql
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE posts ENABLE ROW LEVEL SECURITY;
-ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
-```
-
-### 1.6 Troubleshooting
-
-| Issue | Fix |
-|-------|-----|
-| `connection refused` | Make sure you're using port 6543 (transaction mode) |
-| `SSL required` | Add `?sslmode=require` to your connection string |
-| `too many connections` | You're likely using session mode; switch to transaction mode |
-| `password authentication failed` | Reset password in Supabase Dashboard → Settings → Database |
-
-### 1.7 Alternative: Render Postgres
-
-If you prefer to keep the database on Render too:
-
-1. Go to [https://dashboard.render.com](https://dashboard.render.com) → **New +** → **PostgreSQL**
-2. Name it `magnet-db`, choose **Free** plan, click **Create**
-3. Wait for status **Available** (~1 min), then copy the **Internal Database URL** (starts with `postgresql://`)
-
-> **Note:** Render free Postgres databases **expire after 30 days**. Upgrade to a paid plan for persistent storage. The connection string works with the blueprint unchanged — the backend auto-converts `postgresql://` to the `asyncpg` driver.
+> With Supabase, remove the `fromDatabase` block from `render.yaml` and change `DATABASE_URL` to `sync: false` so you can paste the string at creation time.
 
 ---
 
@@ -176,7 +141,9 @@ services:
     healthCheckPath: /health
     envVars:
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: magnet-db
+          property: connectionString
       - key: SECRET_KEY
         generateValue: true
       - key: DEBUG
@@ -193,17 +160,25 @@ services:
       - type: rewrite
         source: /*
         destination: /index.html
+
+# PostgreSQL database (created automatically by the blueprint)
+databases:
+  - name: magnet-db
+    plan: free
+    region: oregon
+    databaseName: magnet
+    user: magnet
 ```
 
 ### 2.4 Create Web Service on Render
 
 1. Go to [https://dashboard.render.com](https://dashboard.render.com)
-2. Click **"New +"** → **"Blueprint"** and pick the repo containing `render.yaml` (creates both services at once)
+2. Click **"New +"** → **"Blueprint"** and pick the repo containing `render.yaml` (creates the backend, frontend, **and** database at once)
    - Or **"New +"** → **"Web Service"** for the backend alone
 3. Connect your GitHub repository
 4. Configure the backend:
    - **Name:** `magnet-backend`
-   - **Region:** Choose closest to Supabase region
+   - **Region:** Same region as the database (e.g., `oregon`)
    - **Runtime:** `Python 3`
    - **Root Directory:** `backend`
    - **Build Command:** `pip install -r requirements.txt`
@@ -215,12 +190,12 @@ services:
 
 ### 2.5 Environment Variables
 
-Set these in Render Dashboard → **Environment** tab:
+`DATABASE_URL` and `SECRET_KEY` are **set automatically by the blueprint** (from the `magnet-db` database and an auto-generated secret). Only set these manually if you're deploying the backend without the blueprint:
 
 ```bash
-# === Required ===
-DATABASE_URL=postgresql://postgres.[REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres
-SECRET_KEY=<generated automatically by the blueprint — or use: python -c "import secrets; print(secrets.token_urlsafe(64))">
+# === Required (only if not using the blueprint) ===
+# DATABASE_URL is auto-wired via the blueprint's fromDatabase reference
+SECRET_KEY=<auto-generated — or use: python -c "import secrets; print(secrets.token_urlsafe(64))">
 CLOUDINARY_CLOUD_NAME=your_cloud_name    # optional — omit to use local file storage
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
@@ -278,7 +253,7 @@ async def health_check():
 |-------|-----|
 | Build fails with `pip install` errors | Check `requirements.txt` for version conflicts; run `pip check` locally |
 | `Application failed to respond` | App isn't binding to `0.0.0.0:$PORT`; ensure uvicorn uses `--host 0.0.0.0 --port $PORT` |
-| `ECONNREFUSED` on database | Wrong port; use 6543 not 5432 for Supabase; check SSL |
+| `ECONNREFUSED` on database | Verify the database is Available; for Supabase use port 6543 not 5432 |
 | Cold starts take 30+ seconds | Free tier spins down after inactivity; upgrade to paid plan for always-on |
 | Render runs out of memory | Upgrade plan; free tier has 512MB RAM |
 | `ModuleNotFoundError` | Missing dependency in requirements.txt or wrong working directory |
