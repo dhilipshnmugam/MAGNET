@@ -5,29 +5,31 @@
 Magnet is a social media platform with the following architecture:
 
 ```
-┌─────────────┐     ┌──────────────┐     ┌──────────────────┐
-│   Frontend   │────▶│    Backend    │────▶│  Supabase DB     │
-│   (Vercel)   │     │  (Render)     │     │  (PostgreSQL)    │
-└─────────────┘     └──────┬───────┘     └──────────────────┘
-                           │
-                    ┌──────┴───────┐
-                    │              │
-              ┌─────▼─────┐ ┌─────▼──────┐
-              │ Cloudinary │ │  Firebase   │
-              │ (Storage)  │ │  (FCM)      │
-              └───────────┘ └────────────┘
+┌──────────────┐     ┌──────────────┐     ┌──────────────────┐
+│   Frontend    │────▶│   Backend     │────▶│  Supabase DB     │
+│ (Render SPA)  │     │   (Render)    │     │  (PostgreSQL)    │
+└──────────────┘     └──────┬───────┘     └──────────────────┘
+                            │
+                     ┌──────┴───────┐
+                     │              │
+               ┌─────▼─────┐ ┌─────▼──────┐
+               │ Cloudinary │ │  Firebase   │
+               │ (Storage)  │ │  (FCM)      │
+               └───────────┘ └────────────┘
 ```
 
-| Service          | Provider          | Purpose                     |
-|------------------|-------------------|-----------------------------|
-| Frontend         | Vercel            | React SPA (Vite + TypeScript) |
-| Backend          | Render            | FastAPI (Python 3.11)       |
-| Database         | Supabase          | PostgreSQL (asyncpg)        |
-| File Storage     | Cloudinary        | Image/video uploads         |
-| Push Notifications | Firebase Cloud Messaging | Web push             |
+| Service          | Provider                 | Purpose                     |
+|------------------|--------------------------|-----------------------------|
+| Frontend         | Render (static site)     | React SPA (Vite + TypeScript) |
+| Backend          | Render (native Python)   | FastAPI (Python 3.11)       |
+| Database         | Supabase or Render Postgres | PostgreSQL (asyncpg)      |
+| File Storage     | Cloudinary (optional)    | Image/video uploads         |
+| Push Notifications | Firebase Cloud Messaging (optional) | Web push         |
+
+**Everything deploys to Render** from the single `render.yaml` blueprint at the repo root — the backend as a native Python web service and the frontend as a static site.
 
 **Key versions:**
-- Python 3.11+
+- Python 3.11 (pinned in `backend/.python-version`)
 - FastAPI 0.111.0
 - Node.js 18+
 - Vite 5.3.1
@@ -36,7 +38,7 @@ Magnet is a social media platform with the following architecture:
 
 ---
 
-## 1. Database Setup (Supabase)
+## 1. Database Setup (Supabase — recommended)
 
 ### 1.1 Create a Supabase Project
 
@@ -116,6 +118,16 @@ ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
 | `too many connections` | You're likely using session mode; switch to transaction mode |
 | `password authentication failed` | Reset password in Supabase Dashboard → Settings → Database |
 
+### 1.7 Alternative: Render Postgres
+
+If you prefer to keep the database on Render too:
+
+1. Go to [https://dashboard.render.com](https://dashboard.render.com) → **New +** → **PostgreSQL**
+2. Name it `magnet-db`, choose **Free** plan, click **Create**
+3. Wait for status **Available** (~1 min), then copy the **Internal Database URL** (starts with `postgresql://`)
+
+> **Note:** Render free Postgres databases **expire after 30 days**. Upgrade to a paid plan for persistent storage. The connection string works with the blueprint unchanged — the backend auto-converts `postgresql://` to the `asyncpg` driver.
+
 ---
 
 ## 2. Backend Deployment (Render)
@@ -147,9 +159,9 @@ The backend runs on Render's native Python runtime — no `Dockerfile` required.
 3.11.9
 ```
 
-### 2.3 Create render.yaml (Optional)
+### 2.3 The render.yaml Blueprint (included in the repo)
 
-Create `magnet/render.yaml` (a two-service blueprint: backend + frontend):
+The repo ships with `magnet/render.yaml` — a two-service blueprint (backend + frontend):
 
 ```yaml
 services:
@@ -208,15 +220,15 @@ Set these in Render Dashboard → **Environment** tab:
 ```bash
 # === Required ===
 DATABASE_URL=postgresql://postgres.[REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres
-SECRET_KEY=<generate-with: python -c "import secrets; print(secrets.token_urlsafe(64))">
-CLOUDINARY_CLOUD_NAME=your_cloud_name
+SECRET_KEY=<generated automatically by the blueprint — or use: python -c "import secrets; print(secrets.token_urlsafe(64))">
+CLOUDINARY_CLOUD_NAME=your_cloud_name    # optional — omit to use local file storage
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
 
 # === Application ===
 DEBUG=false
-ALLOWED_ORIGINS=https://your-app.vercel.app,https://www.your-domain.com
-FRONTEND_URL=https://your-app.vercel.app
+ALLOWED_ORIGINS=https://magnet-frontend.onrender.com
+FRONTEND_URL=https://magnet-frontend.onrender.com
 
 # === Firebase ===
 FIREBASE_CREDENTIALS_PATH=./firebase-service-account.json
@@ -274,81 +286,59 @@ async def health_check():
 
 ---
 
-## 3. Frontend Deployment (Vercel)
+## 3. Frontend Deployment (Render Static Site)
 
-### 3.1 Import from GitHub
+The frontend deploys as a **static site** on Render. Its configuration lives in the same `render.yaml` blueprint, so it deploys together with the backend:
 
-1. Go to [https://vercel.com](https://vercel.com) and sign up with GitHub
-2. Click **"Add New Project"**
-3. Select your `magnet` repository
-4. Configure:
-   - **Framework Preset:** `Vite`
-   - **Root Directory:** `frontend` (use the `./frontend` dropdown)
-   - **Build Command:** `npm run build`
-   - **Output Directory:** `dist`
-   - **Install Command:** `npm install`
-5. Click **"Deploy"**
+```yaml
+# From magnet/render.yaml
+- type: web
+  name: magnet-frontend
+  runtime: static
+  rootDir: frontend
+  buildCommand: npm ci && npm run build
+  staticPublishPath: ./dist
+  routes:
+    - type: rewrite
+      source: /*
+      destination: /index.html
+```
+
+### 3.1 Create via Blueprint (Recommended)
+
+1. Go to [https://dashboard.render.com](https://dashboard.render.com) → **New +** → **Blueprint**
+2. Connect GitHub and select the `MAGNET` repo, branch `main`
+3. Render reads `render.yaml` and shows both services (`magnet-backend` + `magnet-frontend`)
+4. Fill in the prompted env vars, then click **Create**
+5. Wait for both builds to finish — the static site appears at `https://magnet-frontend.onrender.com`
+
+> Creating the static site manually instead? Use **New + → Static Site** → repo → **Root Directory** `frontend` → **Build Command** `npm ci && npm run build` → **Publish Directory** `dist`.
 
 ### 3.2 Environment Variables
 
-In the Vercel project settings → **Environment Variables**, add:
+Set `VITE_` variables in the static site's **Environment** tab (Render static sites inject these at build time):
 
 ```bash
-VITE_API_URL=https://magnet-backend.onrender.com/api
-VITE_FIREBASE_API_KEY=your-firebase-api-key
-VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=your-project-id
-VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
-VITE_FIREBASE_APP_ID=1:123456789:web:abcdef
+VITE_API_URL=https://magnet-backend.onrender.com/api/v1
 ```
 
-> **Important:** Vercel environment variables must be prefixed with `VITE_` to be exposed to the client bundle.
+> **Important:** Vite only exposes variables prefixed with `VITE_` to the client bundle. This single variable drives both the HTTP API client and the WebSocket URL (chat + notifications). After changing it, Render automatically rebuilds the site.
 
-After adding variables, go to **Deployments** → click **"..."** on latest → **"Redeploy"** to pick up the new env vars.
+### 3.3 SPA Routing (Already Configured)
 
-### 3.3 Custom Domain Setup
+The blueprint includes a catch-all rewrite so deep links (e.g., `/profile/xyz`) serve `index.html` instead of 404ing. Render serves real files first, so `assets/*` are unaffected.
 
-1. In your Vercel project, go to **Settings** → **Domains**
-2. Enter your custom domain (e.g., `magnet.yourdomain.com`)
-3. Add the DNS records Vercel provides:
+If you ever create the static site manually, add this rewrite in the dashboard: **Settings → Redirects/Rewrites** → **Rewrite** — Source `/*`, Destination `/index.html`.
 
-```
-# For apex domain (yourdomain.com)
-Type: A
-Name: @
-Value: 76.76.21.21
-
-# For subdomain (magnet.yourdomain.com)
-Type: CNAME
-Name: magnet
-Value: cname.vercel-dns.com
-```
-
-4. Wait for DNS propagation (5 minutes to 48 hours)
-5. SSL certificate is **automatic** via Let's Encrypt
-
-### 3.4 SPA Routing (Important)
-
-If you use `react-router-dom` with browser routing, create a `vercel.json` in `magnet/frontend/`:
-
-```json
-{
-  "rewrites": [
-    { "source": "/((?!assets/).*)", "destination": "/index.html" }
-  ]
-}
-```
-
-### 3.5 Troubleshooting
+### 3.4 Troubleshooting
 
 | Issue | Fix |
 |-------|-----|
 | Build fails with `tsc` errors | Run `npm run build` locally first; fix TypeScript errors |
-| Blank page after deploy | Check `vercel.json` rewrites; ensure env vars are set |
-| API calls fail with CORS | Add Vercel domain to backend's `ALLOWED_ORIGINS` |
-| `VITE_` variables undefined | Ensure prefix; redeploy after adding variables |
-| 404 on refresh | Add SPA rewrite rules in `vercel.json` |
-| Build exceeds timeout | Optimize dependencies; check `node_modules` size |
+| Blank page after deploy | Check the rewrite rule; ensure `VITE_API_URL` is set and the site rebuilt |
+| API calls fail with CORS | Add the frontend URL to the backend's `ALLOWED_ORIGINS` |
+| `VITE_` variables undefined | Ensure the `VITE_` prefix; change the env var to trigger a rebuild |
+| 404 on refresh | Confirm the `/*` → `/index.html` rewrite exists |
 
 ---
 
@@ -389,7 +379,7 @@ CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
 ```
 
-Frontend (Vercel) — if doing client-side uploads:
+Frontend (Render static site) — if doing client-side uploads:
 ```bash
 VITE_CLOUDINARY_CLOUD_NAME=your_cloud_name
 VITE_CLOUDINARY_UPLOAD_PRESET=magnet_uploads
@@ -424,7 +414,7 @@ VITE_CLOUDINARY_URL=https://api.cloudinary.com/v1_1/your_cloud_name/image/upload
 2. Enter nickname: `Magnet Web`
 3. Check **"Also set up Firebase Hosting"** (optional)
 4. Click **"Register app"**
-5. Copy the `firebaseConfig` object — you'll need these values for Vercel env vars
+5. Copy the `firebaseConfig` object — you'll need these values for the frontend env vars
 
 ### 5.3 Generate Service Account Key (Backend)
 
@@ -439,7 +429,7 @@ VITE_CLOUDINARY_URL=https://api.cloudinary.com/v1_1/your_cloud_name/image/upload
 2. Under **Web Push certificates**, click **"Generate key pair"**
 3. Copy the **Public Key** — add to frontend env vars
 
-Frontend (Vercel):
+Frontend (Render static site):
 ```bash
 VITE_FIREBASE_VAPID_KEY=your-public-vapid-key
 VITE_FIREBASE_API_KEY=your-api-key
@@ -493,17 +483,22 @@ messaging.onBackgroundMessage((payload) => {
 
 ### 6.1 Custom Domain Setup
 
-| Provider | Steps |
-|----------|-------|
-| **Vercel** | Settings → Domains → Enter domain → Add DNS records |
-| **Render** | Settings → Custom Domains → Enter domain → Add DNS records |
+Both services get a free `onrender.com` subdomain automatically:
+- Backend: `https://magnet-backend.onrender.com`
+- Frontend: `https://magnet-frontend.onrender.com`
+
+To add a custom domain:
+
+| Service | Steps |
+|---------|-------|
+| **Render (any service)** | Service → **Settings** → **Custom Domains** → enter domain → add DNS records |
 
 ### 6.2 SSL Certificates
 
-Both Vercel and Render provide **automatic SSL** via Let's Encrypt:
+Render provides **automatic SSL** (Let's Encrypt) for all services, including `onrender.com` subdomains:
 
-- **Vercel:** SSL is automatic and immediate upon DNS verification
-- **Render:** SSL is automatic for custom domains (may take a few minutes after DNS propagation)
+- SSL is enabled immediately on the `onrender.com` subdomain
+- Custom domains get an auto-managed certificate a few minutes after DNS propagation
 
 ### 6.3 DNS Configuration
 
@@ -513,7 +508,7 @@ For a full setup with `magnet.yourdomain.com` (frontend) and `api.magnet.yourdom
 ; Frontend
 Type: CNAME
 Name: magnet
-Value: cname.vercel-dns.com
+Value: magnet-frontend.onrender.com
 TTL: 3600
 
 ; Backend API
@@ -524,8 +519,8 @@ TTL: 3600
 ```
 
 Then update environment variables:
-- **Frontend:** `VITE_API_URL=https://api.magnet.yourdomain.com/api`
-- **Backend:** `ALLOWED_ORIGINS=https://magnet.yourdomain.com,https://api.magnet.yourdomain.com`
+- **Frontend:** `VITE_API_URL=https://api.magnet.yourdomain.com/api/v1`
+- **Backend:** `ALLOWED_ORIGINS=https://magnet.yourdomain.com` and `FRONTEND_URL=https://magnet.yourdomain.com`
 
 ### 6.4 Troubleshooting
 
@@ -555,11 +550,13 @@ Key things to monitor:
 - Request latency
 - Error rates (500s, 400s)
 
-### 7.2 Vercel Analytics
+### 7.2 Frontend Monitoring
 
-1. In Vercel project → **Analytics** tab
-2. Enable **Web Analytics** for visitor tracking
-3. Enable **Speed Insights** for Core Web Vitals
+Render doesn't ship built-in web analytics, so use a third-party tool for the SPA:
+
+- **Plausible / Umami** (privacy-friendly, simple script tag)
+- **Google Analytics 4** — add the `<script>` to `frontend/index.html`
+- **Core Web Vitals** — test with Lighthouse or PageSpeed Insights
 
 ### 7.3 Supabase Dashboard
 
@@ -577,7 +574,6 @@ URL: https://magnet-backend.onrender.com/health
 Interval: 5 minutes
 Alert: your-email@example.com
 ```
-
 ### 7.5 Add Structured Logging to Backend
 
 In `main.py`:
@@ -645,7 +641,7 @@ Cloudinary provides built-in redundancy, but for extra safety:
 |----------|----------------|
 | Database corruption | Restore from Supabase backup; run `alembic upgrade head` |
 | Backend crash | Render auto-restarts; check logs; redeploy if needed |
-| Frontend broken deploy | Revert to previous Vercel deployment (one click) |
+| Frontend broken deploy | Revert to a previous deployment in Render → Deploys → "..." → Rollback |
 | Cloudinary outage | Media temporarily unavailable; no data loss (Cloudinary has 99.95% SLA) |
 | Full data loss | Restore DB from backup; redeploy all services; re-upload critical media |
 
@@ -657,7 +653,7 @@ Cloudinary provides built-in redundancy, but for extra safety:
 
 - [ ] All secrets in environment variables, **never** in code
 - [ ] `.env` is in `.gitignore`
-- [ ] Render/Vercel env vars are encrypted at rest
+- [ ] Render env vars are encrypted at rest
 - [ ] No secrets committed to git history
 
 ### CORS
@@ -678,7 +674,7 @@ app.add_middleware(
 
 Ensure `ALLOWED_ORIGINS` only contains your frontend domains:
 ```
-ALLOWED_ORIGINS=https://magnet.vercel.app,https://magnet.yourdomain.com
+ALLOWED_ORIGINS=https://magnet-frontend.onrender.com
 ```
 
 ### Rate Limiting
@@ -700,8 +696,7 @@ async def login(...):
 
 ### HTTPS Enforcement
 
-- [ ] Vercel: Automatic (all traffic served over HTTPS)
-- [ ] Render: Automatic for custom domains
+- [ ] Render: Automatic HTTPS for all services (subdomains + custom domains)
 - [ ] Add HSTS header:
   ```python
   @app.middleware("http")
@@ -734,9 +729,9 @@ async def login(...):
 
 ### 10.1 CDN Configuration
 
-**Vercel** includes a global CDN automatically. All static assets are cached at edge locations.
+**Render** serves static sites over a global CDN — all `assets/*` are cached at edge locations automatically.
 
-**Render** serves from a single region. For API caching, consider Cloudflare in front.
+**Render** API services run in a single region. For API-level caching/CDN, put Cloudflare in front of `magnet-backend.onrender.com`.
 
 ### 10.2 Database Connection Pooling
 
@@ -914,18 +909,16 @@ jobs:
 
 ### 11.2 Auto-Deploy on Merge
 
-**Render** auto-deploys on push to `main` — no extra configuration needed.
+**Render** auto-deploys both services on push to `main` — no extra configuration needed. The static site rebuilds when `frontend/**` changes and the backend redeploys when `backend/**` changes (both respect their `rootDir`).
 
-**Vercel** auto-deploys on push to `main` — no extra configuration needed.
-
-For pull requests, both platforms create **preview deployments** automatically.
+For pull requests, Render can create **preview deployments** (enable per service in **Settings → Pull Request Previews**).
 
 ### 11.3 Branch Strategy
 
 ```
 main          → Production (auto-deploy)
 ├── develop   → Staging (optional: deploy to staging services)
-└── feature/* → Preview deployments (Vercel + Render PR previews)
+└── feature/* → Preview deployments (Render PR previews)
 ```
 
 ---
@@ -939,12 +932,12 @@ main          → Production (auto-deploy)
 | App won't start | Render | Check logs; ensure `PORT` env var is used |
 | Database connection timeout | Supabase | Use port 6543; check SSL; verify IP allowlist |
 | CORS error in browser | Frontend/Backend | Add frontend URL to `ALLOWED_ORIGINS` |
-| 404 on page refresh | Vercel | Add SPA rewrite in `vercel.json` |
+| 404 on page refresh | Render | Confirm the `/*` → `/index.html` rewrite exists |
 | Images not uploading | Cloudinary | Check API keys; verify upload preset name |
 | Push notifications not working | Firebase | Verify service account; check VAPID key |
 | Slow cold starts | Render | Upgrade to paid plan (always-on instances) |
 | Build exceeds memory | Render | Increase plan; trim dependencies |
-| Environment variables not picked up | Vercel | Must be prefixed with `VITE_`; redeploy after adding |
+| Environment variables not picked up | Render | Frontend: `VITE_` prefix + rebuild; backend: change env var triggers redeploy |
 | Alembic migration fails | Supabase | Check connection string; ensure transaction mode |
 
 ### Debug Commands
@@ -980,17 +973,16 @@ firebase_admin.initialize_app(cred)
 print('Firebase initialized successfully')
 "
 
-# Check Render service status
+# Check Render backend health
 curl https://magnet-backend.onrender.com/health
 
-# Check Vercel deployment
-curl -I https://your-app.vercel.app
+# Check Render frontend
+curl -I https://magnet-frontend.onrender.com
 ```
 
 ### Getting Help
 
 - **Render:** [docs.render.com](https://docs.render.com) | [community.render.com](https://community.render.com)
-- **Vercel:** [vercel.com/docs](https://vercel.com/docs) | [github.com/vercel/vercel](https://github.com/vercel/vercel/discussions)
 - **Supabase:** [supabase.com/docs](https://supabase.com/docs) | [github.com/supabase/supabase](https://github.com/supabase/supabase/discussions)
 - **Cloudinary:** [cloudinary.com/documentation](https://cloudinary.com/documentation)
 - **Firebase:** [firebase.google.com/docs](https://firebase.google.com/docs)
@@ -1000,17 +992,18 @@ curl -I https://your-app.vercel.app
 ## Quick Deploy Checklist
 
 ```
-□ 1. Create Supabase project & get connection string (port 6543)
-□ 2. Run database migrations
-□ 3. Create Cloudinary account & get API keys
-□ 4. Create Firebase project & download service account JSON
-□ 5. Push code to GitHub
-□ 6. Deploy backend to Render (Python) and frontend to Render (static site)
-□ 7. Set all environment variables on both services
-□ 8. Configure custom domains & DNS
-□ 10. Verify SSL certificates
-□ 11. Test health check endpoint
-□ 12. Test end-to-end flow (signup, login, create post, upload image, notifications)
+□ 1. Create Supabase project & get connection string (port 6543) — or Render Postgres
+□ 2. Push code to GitHub (main branch)
+□ 3. Create Cloudinary account & get API keys (optional)
+□ 4. Create Firebase project & download service account JSON (optional)
+□ 5. Create the blueprint on Render: New + → Blueprint → MAGNET repo → main
+□ 6. Paste DATABASE_URL when prompted (SECRET_KEY is auto-generated)
+□ 7. Set frontend env var: VITE_API_URL=https://magnet-backend.onrender.com/api/v1
+□ 8. Set backend env vars: ALLOWED_ORIGINS + FRONTEND_URL=https://magnet-frontend.onrender.com
+□ 9. Verify: backend /health returns healthy
+□ 10. Verify: frontend loads and login works end-to-end
+□ 11. Configure custom domains & DNS (optional)
+□ 12. Verify SSL certificates
 □ 13. Set up uptime monitoring (UptimeRobot or similar)
 □ 14. Review security checklist
 □ 15. Set up database backup schedule
