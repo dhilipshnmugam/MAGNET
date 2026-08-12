@@ -418,6 +418,7 @@ export interface Department {
   description: string | null;
   logo_url: string | null;
   cover_image_url: string | null;
+  college_name?: string | null;
   head_id: string | null;
   is_active: boolean;
   status: string;
@@ -427,6 +428,96 @@ export interface Department {
   club_count: number;
   hod_name: string | null;
   hod_email: string | null;
+  total_members?: number;
+  total_students?: number;
+  total_faculty?: number;
+  total_posts?: number;
+  total_events?: number;
+  total_clubs?: number;
+  total_points?: number;
+  students?: Array<{
+    id: string;
+    full_name: string;
+    avatar_url: string | null;
+    email: string;
+    role: string;
+    year: string | null;
+    register_number: string | null;
+    department_id: string | null;
+    department_name: string | null;
+    points: number;
+    created_at: string | null;
+  }>;
+  faculty?: Array<{
+    id: string;
+    full_name: string;
+    avatar_url: string | null;
+    email: string;
+    role: string;
+    year: string | null;
+    register_number: string | null;
+    department_id: string | null;
+    department_name: string | null;
+    points: number;
+    created_at: string | null;
+  }>;
+  clubs?: Array<{
+    id: string;
+    name: string;
+    club_code: string | null;
+    description: string | null;
+    category: string | null;
+    icon_url: string | null;
+    banner_url: string | null;
+    member_count: number;
+    status: string | null;
+    created_at: string | null;
+  }>;
+  posts?: Array<{
+    id: string;
+    author_id: string;
+    content: string;
+    title: string | null;
+    post_type: string;
+    image_url: string | null;
+    video_url: string | null;
+    visibility: string;
+    like_count: number;
+    comment_count: number;
+    created_at: string | null;
+    author: User | null;
+    media: PostMedia[];
+  }>;
+  events?: Array<{
+    id: string;
+    title: string;
+    description: string | null;
+    event_date: string | null;
+    end_date: string | null;
+    banner_url: string | null;
+    organizer_name: string | null;
+    creator_name: string | null;
+    department_name: string | null;
+    club_name: string | null;
+    contact_email: string | null;
+    contact_phone: string | null;
+    created_at: string | null;
+  }>;
+  achievements?: Array<{
+    id: string;
+    author_id: string;
+    content: string;
+    title: string | null;
+    post_type: string;
+    image_url: string | null;
+    video_url: string | null;
+    visibility: string;
+    like_count: number;
+    comment_count: number;
+    created_at: string | null;
+    author: User | null;
+    media: PostMedia[];
+  }>;
 }
 
 export interface Club {

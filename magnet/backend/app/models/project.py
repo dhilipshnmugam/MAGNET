@@ -26,6 +26,7 @@ class Project(Base):
     members = relationship("ProjectMember", back_populates="project", cascade="all, delete-orphan")
     invitations = relationship("ProjectInvitation", back_populates="project", cascade="all, delete-orphan")
     tasks = relationship("ProjectTask", back_populates="project", cascade="all, delete-orphan")
+    interests = relationship("ProjectInterest", back_populates="project", cascade="all, delete-orphan")
 
     __table_args__ = (
         CheckConstraint("status IN ('planning', 'ongoing', 'completed', 'archived')", name="chk_project_status"),
@@ -90,4 +91,20 @@ class ProjectTask(Base):
     __table_args__ = (
         CheckConstraint("priority IN ('low', 'medium', 'high', 'urgent')", name="chk_task_priority"),
         CheckConstraint("status IN ('pending', 'in_progress', 'completed')", name="chk_task_status"),
+    )
+
+
+class ProjectInterest(Base):
+    __tablename__ = "project_interests"
+
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    project_id = Column(GUID(), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(GUID(), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+
+    project = relationship("Project", back_populates="interests")
+    user = relationship("User", back_populates="project_interests")
+
+    __table_args__ = (
+        UniqueConstraint("project_id", "user_id", name="uq_project_interests_project_user"),
     )

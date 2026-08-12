@@ -33,7 +33,7 @@ export default function ProjectsTab({ projects, loading, isOwn }: ProjectsTabPro
       <div className="py-16 text-center">
         <Code className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600" />
         <p className="mt-3 text-sm font-medium text-gray-500">No projects yet</p>
-        <p className="mb-4 text-xs text-gray-400">Create or join a project to get started</p>
+        <p className="mb-4 text-xs text-gray-400">{isOwn ? 'Create or join a project to get started' : 'No projects found for this user'}</p>
         {isOwn && (
           <button
             onClick={() => navigate('/projects/new')}

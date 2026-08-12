@@ -2,13 +2,12 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
-from sqlalchemy.orm import selectinload
 from app.dependencies import get_db, require_super_admin, get_current_user
 from app.models.user import User
 from app.models.department import Department
 from app.models.post import Post, Like, Bookmark
 from app.models.points import Point
-from app.schemas.department import DepartmentCreate, DepartmentUpdate, DepartmentOut, DepartmentDetailOut
+from app.schemas.department import DepartmentCreate, DepartmentUpdate, DepartmentOut
 from app.schemas.user import UserOut
 from app.schemas.post import PostOut
 from app.schemas.common import ResponseModel, PaginatedResponse
@@ -56,7 +55,7 @@ async def get_department(
     db: AsyncSession = Depends(get_db),
 ):
     data = await department_service.get_department_by_id(db, dept_id)
-    return ResponseModel(data=DepartmentDetailOut(**data).model_dump())
+    return ResponseModel(data=data)
 
 
 @router.post("", response_model=ResponseModel)

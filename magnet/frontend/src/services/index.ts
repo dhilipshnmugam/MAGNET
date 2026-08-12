@@ -140,6 +140,7 @@ export const projectService = {
     api.get('/projects/', { params }),
   myProjects: () => api.get('/projects/my'),
   getById: (id: string) => api.get(`/projects/${id}`),
+  expressInterest: (id: string) => api.post(`/projects/${id}/interest`),
   create: (data: any) => api.post('/projects/', data),
   update: (id: string, data: any) => api.put(`/projects/${id}`, data),
   delete: (id: string) => api.delete(`/projects/${id}`),

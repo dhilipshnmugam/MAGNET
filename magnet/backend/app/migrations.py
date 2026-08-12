@@ -47,6 +47,14 @@ EVENTS_COLUMNS = {
     "additional_info": "TEXT",
 }
 
+NOTIFICATION_TYPES_SQL = (
+    "'post', 'like', 'comment', 'mention', 'event', 'event_reminder',"
+    "'approval', 'rejected', 'leaderboard', 'message', 'announcement',"
+    "'channel_invite', 'system',"
+    "'project_invite', 'project_join', 'task_assigned', 'task_completed',"
+    "'project_updated', 'project_interest'"
+)
+
 
 async def _table_columns(conn, table: str, is_sqlite: bool) -> set[str]:
     if is_sqlite:
@@ -121,6 +129,73 @@ def uuid4_hex() -> str:
     return str(uuid.uuid4())
 
 
+async def _rebuild_notifications_check(conn, is_sqlite: bool) -> int:
+    """Expand chk_notifications_type to include project notification types.
+
+    SQLite cannot ALTER a CHECK constraint, so the table must be rebuilt.
+    Postgres uses the migrations/*.sql ALTER for the same purpose; the SQLite
+    path is handled here so the constraint matches app.models.notification.
+    """
+    if not is_sqlite:
+        try:
+            await conn.execute(text(
+                "ALTER TABLE notifications DROP CONSTRAINT IF EXISTS chk_notifications_type"
+            ))
+            await conn.execute(text(
+                "ALTER TABLE notifications ADD CONSTRAINT chk_notifications_type "
+                f"CHECK (type IN ({NOTIFICATION_TYPES_SQL}))"
+            ))
+        except Exception as e:
+            logger.warning(f"Could not update notifications constraint (Postgres): {e}")
+        return 0
+
+    result = await conn.execute(text(
+        "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'notifications'"
+    ))
+    row = result.one_or_none()
+    if row is None or "project_interest" in (row[0] or ""):
+        return 0
+
+    await conn.execute(text("""
+        CREATE TABLE notifications_new (
+            id VARCHAR(36) NOT NULL,
+            user_id VARCHAR(36) NOT NULL,
+            sender_id VARCHAR(36),
+            type VARCHAR(30) NOT NULL,
+            title VARCHAR(255) NOT NULL,
+            body TEXT NOT NULL,
+            ref_type VARCHAR(30),
+            ref_id VARCHAR(36),
+            sender_name VARCHAR(255),
+            sender_avatar TEXT,
+            is_read BOOLEAN NOT NULL,
+            created_at DATETIME NOT NULL,
+            PRIMARY KEY (id),
+            CONSTRAINT chk_notifications_type CHECK (type IN (""" + NOTIFICATION_TYPES_SQL + """)),
+            FOREIGN KEY(user_id) REFERENCES users (id) ON DELETE CASCADE,
+            FOREIGN KEY(sender_id) REFERENCES users (id) ON DELETE SET NULL
+        )
+    """))
+    await conn.execute(text("""
+        INSERT INTO notifications_new
+            (id, user_id, sender_id, type, title, body, ref_type, ref_id,
+             sender_name, sender_avatar, is_read, created_at)
+        SELECT id, user_id, sender_id, type, title, body, ref_type, ref_id,
+               sender_name, sender_avatar, is_read, created_at
+        FROM notifications
+    """))
+    await conn.execute(text("DROP TABLE notifications"))
+    await conn.execute(text("ALTER TABLE notifications_new RENAME TO notifications"))
+    await conn.execute(text(
+        "CREATE INDEX IF NOT EXISTS ix_notifications_user_unread ON notifications (user_id, is_read)"
+    ))
+    await conn.execute(text(
+        "CREATE INDEX IF NOT EXISTS ix_notifications_user_created ON notifications (user_id, created_at)"
+    ))
+    logger.info("Rebuilt notifications table with expanded type constraint")
+    return 1
+
+
 async def run_migrations(conn) -> int:
     """Run all pending migrations. `conn` is a sync connection for SQLite PRAGMA,
     so we detect dialect from bind and execute async DDL via conn (AsyncConnection)."""
@@ -132,4 +207,5 @@ async def run_migrations(conn) -> int:
     changes += await _ensure_columns(conn, "users", USERS_COLUMNS, is_sqlite)
     changes += await _ensure_columns(conn, "events", EVENTS_COLUMNS, is_sqlite)
     changes += await _backfill_conversations(conn, is_sqlite)
+    changes += await _rebuild_notifications_check(conn, is_sqlite)
     return changes

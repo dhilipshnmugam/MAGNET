@@ -108,7 +108,7 @@ async def _profile_achievements(db: AsyncSession, user_id: UUID) -> list[dict]:
 
 
 async def _profile_projects(db: AsyncSession, user_id: UUID) -> list[dict]:
-    from app.models.project import Project, ProjectMember
+    from app.models.project import Project
     from sqlalchemy.orm import joinedload
 
     owned = (await db.execute(
@@ -119,22 +119,8 @@ async def _profile_projects(db: AsyncSession, user_id: UUID) -> list[dict]:
         ).where(Project.owner_id == user_id).order_by(Project.updated_at.desc())
     )).unique().scalars().all()
 
-    member_rows = (await db.execute(
-        select(Project).options(
-            joinedload(Project.owner),
-            joinedload(Project.members),
-            joinedload(Project.tasks),
-        ).join(ProjectMember).where(ProjectMember.user_id == user_id)
-        .order_by(Project.updated_at.desc())
-    )).unique().scalars().all()
-
-    seen = set()
     out = []
-    for p in owned + member_rows:
-        if p.id in seen:
-            continue
-        seen.add(p.id)
-        membership = next((m for m in p.members if m.user_id == user_id), None)
+    for p in owned:
         total_tasks = len(p.tasks)
         completed_tasks = sum(1 for t in p.tasks if t.status == "completed")
         out.append({
@@ -147,7 +133,7 @@ async def _profile_projects(db: AsyncSession, user_id: UUID) -> list[dict]:
             "member_count": len(p.members),
             "task_count": total_tasks,
             "completed_task_count": completed_tasks,
-            "my_role": membership.role if membership else "owner",
+            "my_role": "owner",
             "created_at": p.created_at,
             "updated_at": p.updated_at,
         })

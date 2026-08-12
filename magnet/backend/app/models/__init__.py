@@ -2,7 +2,7 @@ from app.models.user import User, Student, Hod, UserFollow
 from app.models.department import Department
 from app.models.club import Club, ClubMember, ClubJoinRequest, ClubEvent, ClubGallery, ClubAchievement
 from app.models.club_extras import ClubRole, ClubAssignment
-from app.models.project import Project, ProjectMember, ProjectInvitation, ProjectTask
+from app.models.project import Project, ProjectMember, ProjectInvitation, ProjectTask, ProjectInterest
 from app.models.activity import UserActivity
 from app.models.post import Post, PostMedia, PostImage, Like, Bookmark, PostShare, Hashtag, PostHashtag
 from app.models.comment import Comment
@@ -20,7 +20,7 @@ __all__ = [
     "Department",
     "Club", "ClubMember", "ClubJoinRequest", "ClubEvent", "ClubGallery", "ClubAchievement",
     "ClubRole", "ClubAssignment",
-    "Project", "ProjectMember", "ProjectInvitation", "ProjectTask",
+    "Project", "ProjectMember", "ProjectInvitation", "ProjectTask", "ProjectInterest",
     "UserActivity",
     "Post", "PostMedia", "PostImage", "Like", "Bookmark", "PostShare", "Hashtag", "PostHashtag",
     "Comment",

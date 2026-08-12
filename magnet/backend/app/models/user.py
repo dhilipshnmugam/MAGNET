@@ -62,6 +62,7 @@ class User(Base):
     followers_rel = relationship("UserFollow", foreign_keys="UserFollow.following_id", back_populates="following", cascade="all, delete-orphan")
     owned_projects = relationship("Project", back_populates="owner", foreign_keys="Project.owner_id", cascade="all, delete-orphan")
     project_memberships = relationship("ProjectMember", back_populates="user", cascade="all, delete-orphan")
+    project_interests = relationship("ProjectInterest", back_populates="user", cascade="all, delete-orphan")
     activities = relationship("UserActivity", back_populates="user", cascade="all, delete-orphan")
 
     __table_args__ = (

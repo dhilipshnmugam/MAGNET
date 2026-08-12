@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { projectService } from '../services';
-import { ArrowLeft, Code, Users, Clock, CheckCircle, Circle, AlertCircle, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Code, Users, Clock, CheckCircle, Circle, AlertCircle, Plus, Trash2, Heart } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 
@@ -33,6 +33,8 @@ export default function ProjectDetailPage() {
   const [project, setProject] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [interestLoading, setInterestLoading] = useState(false);
+  const [isInterested, setIsInterested] = useState(false);
 
   useEffect(() => {
     if (projectId) loadProject();
@@ -43,6 +45,7 @@ export default function ProjectDetailPage() {
     try {
       const res = await projectService.getById(projectId!);
       setProject(res.data.project);
+      setIsInterested(Boolean(res.data.project?.is_interested_by_me));
     } catch (err: any) {
       toast.error('Failed to load project');
       navigate('/profile');
@@ -78,6 +81,24 @@ export default function ProjectDetailPage() {
     } catch { toast.error('Failed to delete task'); }
   };
 
+  const handleInterest = async () => {
+    if (!project || isInterested || project.owner?.id === authUser?.id || interestLoading) return;
+    setInterestLoading(true);
+    try {
+      await projectService.expressInterest(project.id);
+      setIsInterested(true);
+      toast.success('Interest saved');
+    } catch (err: any) {
+      if (err.response?.status === 409 || err.response?.status === 400) {
+        setIsInterested(true);
+      } else {
+        toast.error(err.response?.data?.detail || 'Failed to save interest');
+      }
+    } finally {
+      setInterestLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="mx-auto max-w-3xl space-y-4 p-4">
@@ -93,6 +114,7 @@ export default function ProjectDetailPage() {
   const tasks = project.tasks || [];
   const completedTasks = tasks.filter((t: any) => t.status === 'completed');
   const progress = tasks.length > 0 ? Math.round((completedTasks.length / tasks.length) * 100) : 0;
+  const canExpressInterest = Boolean(authUser && authUser.id !== project.owner?.id);
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 p-4 pb-20 lg:pb-6">
@@ -114,6 +136,11 @@ export default function ProjectDetailPage() {
               <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_COLORS[project.status] || STATUS_COLORS.planning}`}>
                 {project.status}
               </span>
+              {isInterested && (
+                <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                  Interested ✓
+                </span>
+              )}
             </div>
             {project.description && <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{project.description}</p>}
           </div>
@@ -132,6 +159,26 @@ export default function ProjectDetailPage() {
                 {tech}
               </span>
             ))}
+          </div>
+        )}
+
+        {canExpressInterest && (
+          <div className="mt-5 flex items-center gap-3">
+            <button
+              onClick={handleInterest}
+              disabled={interestLoading || isInterested}
+              className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-all ${
+                isInterested
+                  ? 'border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-900/20 dark:text-emerald-300'
+                  : 'bg-[#0095f6] text-white hover:bg-[#1877f2]'
+              } disabled:cursor-not-allowed disabled:opacity-70`}
+            >
+              <Heart className={`h-4 w-4 ${isInterested ? 'fill-current' : ''}`} />
+              {isInterested ? 'Interested ✓' : interestLoading ? 'Saving...' : 'Interested'}
+            </button>
+            {project.owner && (
+              <span className="text-xs text-gray-500">Owned by {project.owner.full_name}</span>
+            )}
           </div>
         )}
       </div>

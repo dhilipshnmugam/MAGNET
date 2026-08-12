@@ -6,6 +6,9 @@ from fastapi import HTTPException, status
 from app.models.department import Department
 from app.models.user import User, Hod
 from app.models.club import Club
+from app.models.post import Post
+from app.models.event import Event
+from app.models.points import Point
 
 
 async def generate_dept_code(db: AsyncSession) -> str:
@@ -65,6 +68,99 @@ def _build_dept_out(dept: Department, student_count: int = 0, club_count: int = 
     }
 
 
+def _serialize_member(user: User, points: int = 0) -> dict:
+    return {
+        "id": str(user.id),
+        "full_name": user.full_name,
+        "avatar_url": user.avatar_url,
+        "email": user.email,
+        "role": user.role,
+        "year": user.year,
+        "register_number": user.register_number,
+        "department_id": str(user.department_id) if user.department_id else None,
+        "department_name": user.department_name,
+        "points": points,
+        "created_at": user.created_at.isoformat() if user.created_at else None,
+    }
+
+
+def _serialize_club(club: Club) -> dict:
+    return {
+        "id": str(club.id),
+        "name": club.name,
+        "club_code": club.club_code,
+        "description": club.description,
+        "category": club.category,
+        "icon_url": club.icon_url,
+        "banner_url": club.banner_url,
+        "member_count": len(club.members) if club.members else 0,
+        "status": club.status,
+        "created_at": club.created_at.isoformat() if club.created_at else None,
+    }
+
+
+def _serialize_post(post: Post) -> dict:
+    return {
+        "id": str(post.id),
+        "author_id": str(post.author_id),
+        "content": post.content,
+        "title": post.title,
+        "post_type": post.post_type,
+        "image_url": post.image_url,
+        "video_url": post.video_url,
+        "visibility": post.visibility,
+        "like_count": post.like_count,
+        "comment_count": post.comment_count,
+        "created_at": post.created_at.isoformat() if post.created_at else None,
+        "author": {
+            "id": str(post.author.id),
+            "full_name": post.author.full_name,
+            "avatar_url": post.author.avatar_url,
+            "role": post.author.role,
+            "department_id": str(post.author.department_id) if post.author.department_id else None,
+            "department_name": post.author.department_name,
+        } if post.author else None,
+        "media": [
+            {
+                "id": str(media.id),
+                "media_url": media.media_url,
+                "media_type": media.media_type,
+                "thumbnail_url": media.thumbnail_url,
+                "sort_order": media.sort_order,
+            }
+            for media in post.media
+        ],
+    }
+
+
+def _serialize_event(event: Event) -> dict:
+    return {
+        "id": str(event.id),
+        "title": event.title,
+        "description": event.description,
+        "event_date": event.event_date.isoformat() if event.event_date else None,
+        "end_date": event.end_date.isoformat() if event.end_date else None,
+        "banner_url": event.banner_url,
+        "organizer_name": event.organizer_name or (event.club.name if event.club else None),
+        "creator_name": event.creator.full_name if event.creator else None,
+        "department_name": event.department.name if event.department else None,
+        "club_name": event.club.name if event.club else None,
+        "contact_email": event.contact_email,
+        "contact_phone": event.contact_phone,
+        "created_at": event.created_at.isoformat() if event.created_at else None,
+    }
+
+
+async def _get_total_points(db: AsyncSession, dept_id: UUID) -> int:
+    result = await db.execute(
+        select(func.coalesce(func.sum(Point.points_value), 0))
+        .select_from(Point)
+        .join(User, User.id == Point.user_id)
+        .where(User.department_id == dept_id)
+    )
+    return result.scalar() or 0
+
+
 async def list_departments(
     db: AsyncSession,
     search: str = None,
@@ -97,7 +193,7 @@ async def get_department_by_id(db: AsyncSession, dept_id: UUID) -> dict:
     result = await db.execute(
         select(Department).options(
             selectinload(Department.head),
-            selectinload(Department.clubs),
+            selectinload(Department.clubs).selectinload(Club.members),
             selectinload(Department.users),
             selectinload(Department.channels),
         ).where(Department.id == dept_id)
@@ -106,11 +202,68 @@ async def get_department_by_id(db: AsyncSession, dept_id: UUID) -> dict:
     if not dept:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Department not found")
 
-    student_count = sum(1 for u in dept.users if u.role == "student")
-    club_count = len(dept.clubs)
+    college_name_result = await db.execute(
+        select(User.college_name)
+        .where(User.department_id == dept_id, User.college_name.is_not(None))
+        .order_by(User.created_at.asc())
+        .limit(1)
+    )
+    college_name = college_name_result.scalar_one_or_none()
 
-    data = _build_dept_out(dept, student_count, club_count)
-    data["clubs"] = [{"id": str(c.id), "name": c.name} for c in dept.clubs]
+    students = [u for u in dept.users if u.role == "student"]
+    faculty = [u for u in dept.users if u.role == "department_admin"]
+    club_count = len(dept.clubs)
+    total_points = await _get_total_points(db, dept_id)
+
+    points_result = await db.execute(
+        select(User.id, func.coalesce(func.sum(Point.points_value), 0))
+        .select_from(User)
+        .outerjoin(Point, Point.user_id == User.id)
+        .where(User.department_id == dept_id)
+        .group_by(User.id)
+    )
+    points_map = {str(user_id): points for user_id, points in points_result.all()}
+
+    posts_result = await db.execute(
+        select(Post)
+        .options(
+            selectinload(Post.author).selectinload(User.department),
+            selectinload(Post.media),
+        )
+        .where(Post.is_approved == True, Post.author.has(department_id=dept_id))
+        .order_by(Post.is_pinned.desc(), Post.created_at.desc())
+        .limit(12)
+    )
+    posts = list(posts_result.scalars().unique().all())
+
+    events_result = await db.execute(
+        select(Event)
+        .options(
+            selectinload(Event.creator).selectinload(User.department),
+            selectinload(Event.club),
+            selectinload(Event.department),
+        )
+        .where(Event.department_id == dept_id)
+        .order_by(Event.event_date.desc())
+        .limit(12)
+    )
+    events = list(events_result.scalars().unique().all())
+
+    data = _build_dept_out(dept, len(students), club_count)
+    data["college_name"] = college_name
+    data["total_members"] = len(students) + len(faculty)
+    data["total_students"] = len(students)
+    data["total_faculty"] = len(faculty)
+    data["total_posts"] = len(posts)
+    data["total_events"] = len(events)
+    data["total_clubs"] = club_count
+    data["total_points"] = total_points
+    data["students"] = [_serialize_member(user, points_map.get(str(user.id), 0)) for user in students]
+    data["faculty"] = [_serialize_member(user, points_map.get(str(user.id), 0)) for user in faculty]
+    data["clubs"] = [_serialize_club(club) for club in dept.clubs]
+    data["posts"] = [_serialize_post(post) for post in posts]
+    data["events"] = [_serialize_event(event) for event in events]
+    data["achievements"] = [_serialize_post(post) for post in posts if post.post_type == "achievement"]
     data["channels"] = [{"id": str(ch.id), "name": ch.name} for ch in dept.channels]
     return data
 

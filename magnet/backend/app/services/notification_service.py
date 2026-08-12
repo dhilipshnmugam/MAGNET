@@ -31,6 +31,7 @@ _PREF_MAP = {
     "announcement": "announcement_notifs",
     "channel_invite": "channel_notifs",
     "system": None,
+    "project_interest": None,
 }
 
 _NOTIFICATION_ICONS = {
@@ -47,6 +48,7 @@ _NOTIFICATION_ICONS = {
     "announcement": "megaphone",
     "channel_invite": "hash",
     "system": "info",
+    "project_interest": "heart",
 }
 
 
@@ -259,6 +261,25 @@ async def notify_event_reminder(db: AsyncSession, user_id: UUID, event_id: UUID,
         body=f"\"{event_title}\" starts {time_label}",
         ref_type="event", ref_id=event_id,
         send_push=True,
+    )
+
+
+async def notify_project_interest(db: AsyncSession, project_owner: User, actor: User, project_id: UUID, project_name: str):
+    """Notify a project owner when another user expresses interest in their project."""
+    if project_owner.id == actor.id:
+        return
+
+    await create_notification(
+        db,
+        project_owner.id,
+        "project_interest",
+        title="Project Interest",
+        body=f"{actor.full_name} is interested in your project '{project_name}'.",
+        ref_type="project",
+        ref_id=project_id,
+        sender_id=actor.id,
+        sender_name=actor.full_name,
+        sender_avatar=actor.avatar_url,
     )
 
 

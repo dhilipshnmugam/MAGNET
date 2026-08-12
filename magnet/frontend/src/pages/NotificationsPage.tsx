@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../context/NotificationContext';
 import { notificationService } from '../services';
 import { Notification } from '../types';
@@ -26,6 +27,7 @@ const TYPE_CONFIG: Record<string, { icon: React.ComponentType<{ className?: stri
   announcement: { icon: Megaphone, color: 'text-red-500 bg-red-50 dark:bg-red-900/20', label: 'Announcement' },
   channel_invite: { icon: Hash, color: 'text-teal-500 bg-teal-50 dark:bg-teal-900/20', label: 'Club' },
   system: { icon: Info, color: 'text-gray-500 bg-gray-50 dark:bg-gray-800', label: 'System' },
+  project_interest: { icon: Heart, color: 'text-rose-500 bg-rose-50 dark:bg-rose-900/20', label: 'Project' },
 };
 
 const FILTERS = [
@@ -41,6 +43,7 @@ const FILTERS = [
 
 export default function NotificationsPage() {
   const { notifications, unreadCount, fetchNotifications, markRead, markAllRead } = useNotifications();
+  const navigate = useNavigate();
   const [filter, setFilter] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
 
@@ -53,6 +56,18 @@ export default function NotificationsPage() {
   const handleMarkAllRead = async () => {
     await markAllRead();
     toast.success('All notifications marked as read');
+  };
+
+  const resolveTarget = (notif: Notification) => {
+    if (!notif.ref_type || !notif.ref_id) return null;
+    if (notif.ref_type === 'project') return `/projects/${notif.ref_id}`;
+    if (notif.ref_type === 'event') return `/events/${notif.ref_id}`;
+    if (notif.ref_type === 'department') return `/departments/${notif.ref_id}`;
+    if (notif.ref_type === 'user' || notif.ref_type === 'profile') return `/profile/${notif.sender_id || notif.ref_id}`;
+    if (notif.ref_type === 'leaderboard') return '/leaderboard';
+    if (notif.ref_type === 'approval') return '/settings';
+    if (notif.ref_type === 'post') return '/feed';
+    return null;
   };
 
   return (
@@ -122,7 +137,11 @@ export default function NotificationsPage() {
             return (
               <div
                 key={notif.id}
-                onClick={() => !notif.is_read && markRead(notif.id)}
+                onClick={() => {
+                  if (!notif.is_read) markRead(notif.id);
+                  const target = resolveTarget(notif);
+                  if (target) navigate(target);
+                }}
                 className={cn(
                   'card cursor-pointer p-4 transition-all hover:shadow-md group',
                   !notif.is_read

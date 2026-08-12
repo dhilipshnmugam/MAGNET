@@ -2,13 +2,15 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, delete
 from sqlalchemy.orm import joinedload, selectinload
+from sqlalchemy.exc import IntegrityError
 from typing import Optional
 from datetime import datetime
 from app.database import AsyncSessionLocal
 from app.dependencies import get_db, get_current_user
-from app.models.project import Project, ProjectMember, ProjectInvitation, ProjectTask
+from app.models.project import Project, ProjectMember, ProjectInvitation, ProjectTask, ProjectInterest
 from app.models.notification import Notification
 from app.models.user import User
+from app.services import notification_service
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
 
@@ -130,6 +132,7 @@ async def get_project(
         joinedload(Project.members).joinedload(ProjectMember.user),
         joinedload(Project.tasks).joinedload(ProjectTask.assignee),
         joinedload(Project.invitations),
+        joinedload(Project.interests),
     ).where(Project.id == project_id)
     result = await db.execute(q)
     project = result.unique().scalar_one_or_none()
@@ -139,6 +142,7 @@ async def get_project(
 
     memberships = [m for m in project.members if m.user_id == current_user.id]
     invitations = [i for i in project.invitations if i.user_id == current_user.id and i.status == "pending"]
+    interest = next((item for item in project.interests if item.user_id == current_user.id), None)
 
     return {
         "project": {
@@ -179,8 +183,52 @@ async def get_project(
             "is_member": len(memberships) > 0 or project.owner_id == current_user.id,
             "my_role": memberships[0].role if memberships else ("owner" if project.owner_id == current_user.id else None),
             "has_pending_invitation": len(invitations) > 0,
+            "is_interested_by_me": interest is not None,
         }
     }
+
+
+@router.post("/{project_id}/interest")
+async def express_interest(
+    project_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    result = await db.execute(
+        select(Project)
+        .options(
+            joinedload(Project.owner),
+            joinedload(Project.interests),
+        )
+        .where(Project.id == project_id)
+    )
+    project = result.unique().scalar_one_or_none()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    if project.owner_id == current_user.id:
+        raise HTTPException(status_code=400, detail="You cannot express interest in your own project")
+
+    existing = next((item for item in project.interests if item.user_id == current_user.id), None)
+    if existing:
+        return {"message": "Already interested", "is_interested_by_me": True}
+
+    interest = ProjectInterest(project_id=project.id, user_id=current_user.id)
+    db.add(interest)
+
+    await notification_service.notify_project_interest(
+        db=db,
+        project_owner=project.owner,
+        actor=current_user,
+        project_id=project.id,
+        project_name=project.name,
+    )
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        return {"message": "Already interested", "is_interested_by_me": True}
+
+    return {"message": "Interest saved", "is_interested_by_me": True}
 
 
 @router.post("/", status_code=201)

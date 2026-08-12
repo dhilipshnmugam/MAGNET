@@ -27,6 +27,7 @@ import EventDetailsPage from './pages/EventDetailsPage';
 import NotificationsPage from './pages/NotificationsPage';
 import LeaderboardPage from './pages/LeaderboardPage';
 import SearchPage from './pages/SearchPage';
+import DepartmentDetailsPage from './pages/DepartmentDetailsPage';
 import SettingsPage from './pages/SettingsPage';
 import AdminLayout from './pages/admin/AdminLayout';
 import SuperAdminDashboardPage from './pages/admin/SuperAdminDashboardPage';
@@ -91,6 +92,7 @@ export default function App() {
                 <Route path="/notifications" element={<ProtectedRoute><Layout><NotificationsPage /></Layout></ProtectedRoute>} />
                 <Route path="/leaderboard" element={<ProtectedRoute><Layout><LeaderboardPage /></Layout></ProtectedRoute>} />
                 <Route path="/search" element={<ProtectedRoute><Layout><SearchPage /></Layout></ProtectedRoute>} />
+                <Route path="/departments/:departmentId" element={<ProtectedRoute><Layout><DepartmentDetailsPage /></Layout></ProtectedRoute>} />
                 <Route path="/settings" element={<ProtectedRoute><Layout><SettingsPage /></Layout></ProtectedRoute>} />
 
                 {/* Role-Protected Routes */}

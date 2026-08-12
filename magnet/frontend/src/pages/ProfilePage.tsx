@@ -329,9 +329,7 @@ export default function ProfilePage() {
           {[
             { key: 'posts' as const, label: isOwn ? 'My Posts' : 'Posts', icon: Grid3X3 },
             { key: 'clubs' as const, label: 'Clubs', icon: Users },
-            ...((isOwn || displayUser?.role === 'principal') ? [
-              { key: 'projects' as const, label: 'Projects', icon: Code },
-            ] : []),
+            { key: 'projects' as const, label: 'Projects', icon: Code },
             ...(isOwn ? [
               { key: 'analytics' as const, label: 'Analytics', icon: BarChart3 },
             ] : []),

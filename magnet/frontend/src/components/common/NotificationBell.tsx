@@ -19,7 +19,20 @@ const TYPE_ICONS: Record<string, string> = {
   announcement: '\u{1F4E2}',
   channel_invite: '\u{23F3}',
   system: '\u{2139}\u{FE0F}',
+  project_interest: '\u{2764}\u{FE0F}',
 };
+
+function resolveNotificationTarget(notif: { ref_type: string | null; ref_id: string | null; sender_id?: string | null }) {
+  if (!notif.ref_type || !notif.ref_id) return null;
+  if (notif.ref_type === 'project') return `/projects/${notif.ref_id}`;
+  if (notif.ref_type === 'event') return `/events/${notif.ref_id}`;
+  if (notif.ref_type === 'department') return `/departments/${notif.ref_id}`;
+  if (notif.ref_type === 'user' || notif.ref_type === 'profile') return `/profile/${notif.sender_id || notif.ref_id}`;
+  if (notif.ref_type === 'leaderboard') return '/leaderboard';
+  if (notif.ref_type === 'approval') return '/settings';
+  if (notif.ref_type === 'post') return '/feed';
+  return null;
+}
 
 export default function NotificationBell() {
   const { unreadCount, notifications, markRead, markAllRead } = useNotifications();
@@ -80,12 +93,8 @@ export default function NotificationBell() {
                   onClick={() => {
                     if (!notif.is_read) markRead(notif.id);
                     setOpen(false);
-                    if (notif.ref_type && notif.ref_id) {
-                      if (notif.ref_type === 'post') navigate('/feed');
-                      else if (notif.ref_type === 'event') navigate('/events');
-                      else if (notif.ref_type === 'leaderboard') navigate('/leaderboard');
-                      else if (notif.ref_type === 'approval') navigate('/settings');
-                    }
+                    const target = resolveNotificationTarget(notif);
+                    if (target) navigate(target);
                   }}
                   className={cn(
                     'flex cursor-pointer items-start gap-3 border-b border-gray-50 px-4 py-3 transition-colors hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800/50',
