@@ -14,7 +14,7 @@ NOTIFICATION_TYPES = (
     "'approval', 'rejected', 'leaderboard', 'message', 'announcement',"
     "'channel_invite', 'system',"
     "'project_invite', 'project_join', 'task_assigned', 'task_completed',"
-    "'project_updated', 'project_interest'"
+    "'project_updated', 'project_interest', 'follow'"
 )
 
 

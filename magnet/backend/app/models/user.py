@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from sqlalchemy import (
     Column, String, Text, Boolean, DateTime, SmallInteger,
-    ForeignKey, CheckConstraint
+    ForeignKey, CheckConstraint, UniqueConstraint
 )
 from sqlalchemy.orm import relationship
 from app.database import Base
@@ -135,4 +135,5 @@ class UserFollow(Base):
 
     __table_args__ = (
         CheckConstraint("follower_id != following_id", name="chk_no_self_follow"),
+        UniqueConstraint("follower_id", "following_id", name="uq_user_follows_pair"),
     )

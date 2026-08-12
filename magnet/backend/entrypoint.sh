@@ -2,7 +2,6 @@
 set -e
 
 echo "Starting Magnet backend..."
-echo "DATABASE_URL: $DATABASE_URL"
 
 # Run database table creation via Python
 python -c "
@@ -20,4 +19,4 @@ asyncio.run(create_tables())
 "
 
 echo "Starting uvicorn server..."
-exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1
+exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1

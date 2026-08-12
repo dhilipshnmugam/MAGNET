@@ -5,7 +5,7 @@ from app.dependencies import get_db, get_current_user, require_student, require_
 from app.models.user import User
 from app.schemas.user import (
     UserOut, UserDetailOut, UserUpdate, StudentProfileUpdate,
-    HodProfileUpdate, StudentOut, HodOut, ProfileView
+    HodProfileUpdate, StudentOut, HodOut, ProfileView, UserListItem
 )
 from app.schemas.common import ResponseModel, PaginatedResponse
 from app.services import auth_service, user_service
@@ -97,6 +97,7 @@ async def get_user_profile(
         following_count=data["following_count"],
         post_count=data["post_count"],
         is_following=data["is_following"],
+        is_followed_by=data["is_followed_by"],
         is_self=data["is_self"],
         clubs=data.get("clubs", []),
         achievements=data.get("achievements", []),
@@ -133,9 +134,9 @@ async def get_followers(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    users, total = await user_service.get_followers(db, user_id, page, page_size)
+    items, total = await user_service.get_followers(db, user_id, current_user.id, page, page_size)
     return PaginatedResponse(
-        data=[UserOut.model_validate(u).model_dump() for u in users],
+        data=[UserListItem.model_validate(u).model_dump() for u in items],
         total=total, page=page, page_size=page_size,
         has_next=(page * page_size) < total,
     )
@@ -149,9 +150,9 @@ async def get_following(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    users, total = await user_service.get_following(db, user_id, page, page_size)
+    items, total = await user_service.get_following(db, user_id, current_user.id, page, page_size)
     return PaginatedResponse(
-        data=[UserOut.model_validate(u).model_dump() for u in users],
+        data=[UserListItem.model_validate(u).model_dump() for u in items],
         total=total, page=page, page_size=page_size,
         has_next=(page * page_size) < total,
     )

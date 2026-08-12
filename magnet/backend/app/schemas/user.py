@@ -173,10 +173,17 @@ class ProfileView(BaseModel):
     following_count: int = 0
     post_count: int = 0
     is_following: bool = False
+    is_followed_by: bool = False
     is_self: bool = False
     clubs: List["ProfileClub"] = []
     achievements: List["ProfileAchievement"] = []
     projects: List["ProfileProject"] = []
+
+
+class UserListItem(UserOut):
+    department_name: Optional[str] = None
+    is_following: bool = False
+    is_followed_by: bool = False
 
 
 class ProfileClub(BaseModel):

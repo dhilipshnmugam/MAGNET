@@ -32,6 +32,7 @@ _PREF_MAP = {
     "channel_invite": "channel_notifs",
     "system": None,
     "project_interest": None,
+    "follow": None,
 }
 
 _NOTIFICATION_ICONS = {
@@ -49,6 +50,7 @@ _NOTIFICATION_ICONS = {
     "channel_invite": "hash",
     "system": "info",
     "project_interest": "heart",
+    "follow": "user-plus",
 }
 
 
@@ -261,6 +263,25 @@ async def notify_event_reminder(db: AsyncSession, user_id: UUID, event_id: UUID,
         body=f"\"{event_title}\" starts {time_label}",
         ref_type="event", ref_id=event_id,
         send_push=True,
+    )
+
+
+async def notify_follow(db: AsyncSession, follower: User, target_user_id: UUID):
+    """Notify a user when someone new follows them."""
+    if follower.id == target_user_id:
+        return
+
+    await create_notification(
+        db,
+        target_user_id,
+        "follow",
+        title="New Follower",
+        body=f"{follower.full_name} started following you",
+        ref_type="user",
+        ref_id=follower.id,
+        sender_id=follower.id,
+        sender_name=follower.full_name,
+        sender_avatar=follower.avatar_url,
     )
 
 

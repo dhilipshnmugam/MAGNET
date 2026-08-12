@@ -20,6 +20,7 @@ const TYPE_ICONS: Record<string, string> = {
   channel_invite: '\u{23F3}',
   system: '\u{2139}\u{FE0F}',
   project_interest: '\u{2764}\u{FE0F}',
+  follow: '\u{1F464}',
 };
 
 function resolveNotificationTarget(notif: { ref_type: string | null; ref_id: string | null; sender_id?: string | null }) {

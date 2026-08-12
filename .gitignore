@@ -46,6 +46,7 @@ logs/
 # Database
 *.db
 *.sqlite3
+magnet/backend/uploads/
 
 # Temp
 .opencode/

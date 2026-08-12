@@ -1,10 +1,11 @@
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, and_
+from sqlalchemy import select, func, and_, or_
 from fastapi import HTTPException, status
 from app.models.user import User, Student, Hod, UserFollow
 from app.models.department import Department
 from app.models.post import Post
+from app.schemas.user import UserOut
 
 
 async def get_user_by_id(db: AsyncSession, user_id: UUID) -> User:
@@ -39,16 +40,14 @@ async def get_user_profile(db: AsyncSession, user_id: UUID, viewer_id: UUID = No
     )).scalar() or 0
 
     is_following = False
+    is_followed_by = False
     is_self = False
     if viewer_id:
         is_self = viewer_id == user_id
         if not is_self:
-            existing = (await db.execute(
-                select(UserFollow).where(
-                    and_(UserFollow.follower_id == viewer_id, UserFollow.following_id == user_id)
-                )
-            )).scalar_one_or_none()
-            is_following = existing is not None
+            following_ids, followed_by_ids = await _viewer_follow_sets(db, viewer_id)
+            is_following = user_id in following_ids
+            is_followed_by = user_id in followed_by_ids
 
     clubs = await _profile_clubs(db, user_id)
     achievements = await _profile_achievements(db, user_id)
@@ -60,6 +59,7 @@ async def get_user_profile(db: AsyncSession, user_id: UUID, viewer_id: UUID = No
         "following_count": following_count,
         "post_count": post_count,
         "is_following": is_following,
+        "is_followed_by": is_followed_by,
         "is_self": is_self,
         "clubs": clubs,
         "achievements": achievements,
@@ -145,6 +145,7 @@ async def follow_user(db: AsyncSession, follower_id: UUID, following_id: UUID) -
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot follow yourself")
 
     target = await get_user_by_id(db, following_id)
+    follower = await get_user_by_id(db, follower_id)
 
     existing = (await db.execute(
         select(UserFollow).where(
@@ -157,6 +158,9 @@ async def follow_user(db: AsyncSession, follower_id: UUID, following_id: UUID) -
     follow = UserFollow(follower_id=follower_id, following_id=following_id)
     db.add(follow)
     await db.flush()
+
+    from app.services.notification_service import notify_follow
+    await notify_follow(db, follower, following_id)
 
 
 async def unfollow_user(db: AsyncSession, follower_id: UUID, following_id: UUID) -> None:
@@ -172,28 +176,68 @@ async def unfollow_user(db: AsyncSession, follower_id: UUID, following_id: UUID)
     await db.flush()
 
 
-async def get_followers(db: AsyncSession, user_id: UUID, page: int = 1, page_size: int = 20) -> tuple[list, int]:
+async def get_followers(
+    db: AsyncSession, user_id: UUID, viewer_id: UUID = None, page: int = 1, page_size: int = 20
+) -> tuple[list[dict], int]:
+    await get_user_by_id(db, user_id)
     query = (
         select(User)
         .join(UserFollow, UserFollow.follower_id == User.id)
         .where(UserFollow.following_id == user_id)
     )
     total = (await db.execute(select(func.count()).select_from(query.subquery()))).scalar()
-    query = query.offset((page - 1) * page_size).limit(page_size)
+    query = query.order_by(UserFollow.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
     result = await db.execute(query)
-    return result.scalars().all(), total
+    users = result.scalars().all()
+    following_ids, followed_by_ids = await _viewer_follow_sets(db, viewer_id)
+    return [_user_list_item(u, following_ids, followed_by_ids) for u in users], total
 
 
-async def get_following(db: AsyncSession, user_id: UUID, page: int = 1, page_size: int = 20) -> tuple[list, int]:
+async def get_following(
+    db: AsyncSession, user_id: UUID, viewer_id: UUID = None, page: int = 1, page_size: int = 20
+) -> tuple[list[dict], int]:
+    await get_user_by_id(db, user_id)
     query = (
         select(User)
         .join(UserFollow, UserFollow.following_id == User.id)
         .where(UserFollow.follower_id == user_id)
     )
     total = (await db.execute(select(func.count()).select_from(query.subquery()))).scalar()
-    query = query.offset((page - 1) * page_size).limit(page_size)
+    query = query.order_by(UserFollow.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
     result = await db.execute(query)
-    return result.scalars().all(), total
+    users = result.scalars().all()
+    following_ids, followed_by_ids = await _viewer_follow_sets(db, viewer_id)
+    return [_user_list_item(u, following_ids, followed_by_ids) for u in users], total
+
+
+async def _viewer_follow_sets(db: AsyncSession, viewer_id: UUID) -> tuple[set, set]:
+    """Return (ids the viewer follows, ids that follow the viewer)."""
+    if not viewer_id:
+        return set(), set()
+    following = set()
+    followed_by = set()
+    rows = (await db.execute(
+        select(UserFollow.follower_id, UserFollow.following_id).where(
+            or_(
+                UserFollow.follower_id == viewer_id,
+                UserFollow.following_id == viewer_id,
+            )
+        )
+    )).all()
+    for follower, following_ in rows:
+        if follower == viewer_id:
+            following.add(following_)
+        if following_ == viewer_id:
+            followed_by.add(follower)
+    return following, followed_by
+
+
+def _user_list_item(user: User, following_ids: set, followed_by_ids: set) -> dict:
+    item = UserOut.model_validate(user).model_dump()
+    item["department_name"] = user.department_name
+    item["is_following"] = user.id in following_ids
+    item["is_followed_by"] = user.id in followed_by_ids
+    return item
 
 
 async def search_users(

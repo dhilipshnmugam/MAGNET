@@ -52,7 +52,7 @@ NOTIFICATION_TYPES_SQL = (
     "'approval', 'rejected', 'leaderboard', 'message', 'announcement',"
     "'channel_invite', 'system',"
     "'project_invite', 'project_join', 'task_assigned', 'task_completed',"
-    "'project_updated', 'project_interest'"
+    "'project_updated', 'project_interest', 'follow'"
 )
 
 
@@ -153,7 +153,10 @@ async def _rebuild_notifications_check(conn, is_sqlite: bool) -> int:
         "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'notifications'"
     ))
     row = result.one_or_none()
-    if row is None or "project_interest" in (row[0] or ""):
+    if row is None:
+        return 0
+    table_sql = row[0] or ""
+    if "project_interest" in table_sql and "follow" in table_sql:
         return 0
 
     await conn.execute(text("""
@@ -196,6 +199,59 @@ async def _rebuild_notifications_check(conn, is_sqlite: bool) -> int:
     return 1
 
 
+async def _rebuild_user_follows_unique(conn, is_sqlite: bool) -> int:
+    """Add a UNIQUE (follower_id, following_id) constraint to user_follows.
+
+    SQLite cannot ALTER a table to add a constraint, so the table must be
+    rebuilt (deduplicating any existing duplicate rows first). Postgres is
+    handled by migrations/*.sql.
+    """
+    if not is_sqlite:
+        return 0
+
+    idx = await conn.execute(text(
+        "SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'uq_user_follows_pair'"
+    ))
+    if idx.one_or_none():
+        return 0
+
+    result = await conn.execute(text(
+        "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'user_follows'"
+    ))
+    if result.one_or_none() is None:
+        return 0
+
+    await conn.execute(text("""
+        CREATE TABLE user_follows_new (
+            id VARCHAR(36) NOT NULL,
+            follower_id VARCHAR(36) NOT NULL,
+            following_id VARCHAR(36) NOT NULL,
+            created_at DATETIME NOT NULL,
+            PRIMARY KEY (id),
+            CONSTRAINT uq_user_follows_pair UNIQUE (follower_id, following_id),
+            CONSTRAINT chk_no_self_follow CHECK (follower_id != following_id),
+            FOREIGN KEY(follower_id) REFERENCES users (id) ON DELETE CASCADE,
+            FOREIGN KEY(following_id) REFERENCES users (id) ON DELETE CASCADE
+        )
+    """))
+    await conn.execute(text("""
+        INSERT INTO user_follows_new (id, follower_id, following_id, created_at)
+        SELECT id, follower_id, following_id, created_at
+        FROM user_follows
+        GROUP BY follower_id, following_id
+    """))
+    await conn.execute(text("DROP TABLE user_follows"))
+    await conn.execute(text("ALTER TABLE user_follows_new RENAME TO user_follows"))
+    await conn.execute(text(
+        "CREATE INDEX IF NOT EXISTS ix_user_follows_follower_id ON user_follows (follower_id)"
+    ))
+    await conn.execute(text(
+        "CREATE INDEX IF NOT EXISTS ix_user_follows_following_id ON user_follows (following_id)"
+    ))
+    logger.info("Rebuilt user_follows table with unique (follower_id, following_id) constraint")
+    return 1
+
+
 async def run_migrations(conn) -> int:
     """Run all pending migrations. `conn` is a sync connection for SQLite PRAGMA,
     so we detect dialect from bind and execute async DDL via conn (AsyncConnection)."""
@@ -208,4 +264,5 @@ async def run_migrations(conn) -> int:
     changes += await _ensure_columns(conn, "events", EVENTS_COLUMNS, is_sqlite)
     changes += await _backfill_conversations(conn, is_sqlite)
     changes += await _rebuild_notifications_check(conn, is_sqlite)
+    changes += await _rebuild_user_follows_unique(conn, is_sqlite)
     return changes

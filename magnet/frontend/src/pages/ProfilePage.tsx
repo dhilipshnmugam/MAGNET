@@ -10,6 +10,7 @@ import ClubsTab from '../components/profile/ClubsTab';
 import ProjectsTab from '../components/profile/ProjectsTab';
 import AnalyticsTab from '../components/profile/AnalyticsTab';
 import AchievementsTab from '../components/profile/AchievementsTab';
+import FollowersModal from '../components/profile/FollowersModal';
 import toast from 'react-hot-toast';
 import {
   Camera, Share2, Grid3X3, Award, Users,
@@ -47,10 +48,13 @@ export default function ProfilePage() {
   const [profileHod, setProfileHod] = useState<any>(null);
   const [isOwnProfile, setIsOwnProfile] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
+  const [isFollowedBy, setIsFollowedBy] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   const [postCount, setPostCount] = useState(0);
   const [followLoading, setFollowLoading] = useState(false);
+  const [followersModalOpen, setFollowersModalOpen] = useState(false);
+  const [followingModalOpen, setFollowingModalOpen] = useState(false);
 
   const [posts, setPosts] = useState<Post[]>([]);
   const [clubs, setClubs] = useState<any[]>([]);
@@ -97,6 +101,8 @@ export default function ProfilePage() {
         setClubs(d.clubs || []);
         setAchievements(d.achievements || []);
         setProjects(d.projects || []);
+        setFollowerCount(d.follower_count || 0);
+        setFollowingCount(d.following_count || 0);
       }
     } catch {} finally { setLoading(false); setProfileLoading(false); }
   };
@@ -115,6 +121,7 @@ export default function ProfilePage() {
         setProfileStudent(d.student);
         setProfileHod(d.hod);
         setIsFollowing(d.is_following);
+        setIsFollowedBy(d.is_followed_by);
         setFollowerCount(d.follower_count || 0);
         setFollowingCount(d.following_count || 0);
         setPostCount(d.post_count || 0);
@@ -144,6 +151,20 @@ export default function ProfilePage() {
     } catch (err: any) {
       toast.error(err.response?.data?.detail || 'Action failed');
     } finally { setFollowLoading(false); }
+  };
+
+  const refreshCounts = async () => {
+    if (!viewingUserId) return;
+    try {
+      const res = await userService.getProfile(viewingUserId);
+      const d = res.data.data;
+      setFollowerCount(d.follower_count || 0);
+      setFollowingCount(d.following_count || 0);
+      if (!isOwn) {
+        setIsFollowing(d.is_following);
+        setIsFollowedBy(d.is_followed_by);
+      }
+    } catch {}
   };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -261,7 +282,7 @@ export default function ProfilePage() {
                         ? 'border border-gray-300 text-gray-700 hover:border-red-300 hover:text-red-600 dark:border-gray-600 dark:hover:border-red-500'
                         : 'bg-[#0095f6] text-white hover:bg-[#1877f2]'
                     }`}>
-                    {isFollowing ? <><Check className="h-4 w-4" /> Following</> : <><UserPlus className="h-4 w-4" /> Follow</>}
+                    {isFollowing ? <><Check className="h-4 w-4" /> Following</> : isFollowedBy ? <><UserPlus className="h-4 w-4" /> Follow Back</> : <><UserPlus className="h-4 w-4" /> Follow</>}
                   </button>
                   <button onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success('Link copied!'); }}
                     className="rounded-lg border border-gray-300 px-4 py-1.5 text-sm font-semibold transition-all hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800">
@@ -313,11 +334,11 @@ export default function ProfilePage() {
           <p className="text-2xl font-bold">{isOwn ? posts.length : postCount}</p>
           <p className="text-xs text-gray-500">Posts</p>
         </div>
-        <div className="card p-4 text-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+        <div className="card p-4 text-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" onClick={() => viewingUserId && setFollowersModalOpen(true)}>
           <p className="text-2xl font-bold">{followerCount}</p>
           <p className="text-xs text-gray-500">Followers</p>
         </div>
-        <div className="card p-4 text-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+        <div className="card p-4 text-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" onClick={() => viewingUserId && setFollowingModalOpen(true)}>
           <p className="text-2xl font-bold">{followingCount}</p>
           <p className="text-xs text-gray-500">Following</p>
         </div>
@@ -436,6 +457,26 @@ export default function ProfilePage() {
       {/* Post Creator Modal */}
       {canCreatePost && (
         <PostCreator isOpen={showCreator} onClose={() => setShowCreator(false)} onPostCreated={handlePostCreated} />
+      )}
+
+      {/* Followers / Following Modals */}
+      {viewingUserId && (
+        <>
+          <FollowersModal
+            isOpen={followersModalOpen}
+            onClose={() => setFollowersModalOpen(false)}
+            userId={viewingUserId}
+            mode="followers"
+            onCountChange={refreshCounts}
+          />
+          <FollowersModal
+            isOpen={followingModalOpen}
+            onClose={() => setFollowingModalOpen(false)}
+            userId={viewingUserId}
+            mode="following"
+            onCountChange={refreshCounts}
+          />
+        </>
       )}
     </div>
   );

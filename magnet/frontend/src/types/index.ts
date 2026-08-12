@@ -24,10 +24,31 @@ export interface ProfileView {
   following_count: number;
   post_count: number;
   is_following: boolean;
+  is_followed_by: boolean;
   is_self: boolean;
   clubs: ProfileClub[];
   achievements: ProfileAchievement[];
   projects: ProfileProject[];
+}
+
+export interface UserListItem {
+  id: string;
+  email: string;
+  full_name: string;
+  role: User['role'];
+  avatar_url: string | null;
+  cover_url: string | null;
+  bio: string | null;
+  department_id: string | null;
+  department_name: string | null;
+  year: string | null;
+  register_number: string | null;
+  college_name: string | null;
+  is_verified: boolean;
+  is_active: boolean;
+  created_at: string;
+  is_following: boolean;
+  is_followed_by: boolean;
 }
 
 export interface ProfileClub {

@@ -11,6 +11,9 @@ coverage.xml
 *.egg-info
 *.log
 startup.log
+*.db
+*.sqlite
+uploads
 .DS_Store
 Thumbs.db
 .env

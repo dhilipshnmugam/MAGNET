@@ -7,7 +7,7 @@ import { timeAgo } from '../utils/helpers';
 import {
   Bell, Check, CheckCheck, Heart, MessageCircle, FileText, Calendar,
   Trophy, Mail, Megaphone, Hash, AlertCircle, Clock, XCircle, Info,
-  Filter, ChevronDown, AtSign,
+  Filter, ChevronDown, AtSign, UserPlus,
 } from 'lucide-react';
 import EmptyState from '../components/common/EmptyState';
 import { cn } from '../utils/helpers';
@@ -28,6 +28,7 @@ const TYPE_CONFIG: Record<string, { icon: React.ComponentType<{ className?: stri
   channel_invite: { icon: Hash, color: 'text-teal-500 bg-teal-50 dark:bg-teal-900/20', label: 'Club' },
   system: { icon: Info, color: 'text-gray-500 bg-gray-50 dark:bg-gray-800', label: 'System' },
   project_interest: { icon: Heart, color: 'text-rose-500 bg-rose-50 dark:bg-rose-900/20', label: 'Project' },
+  follow: { icon: UserPlus, color: 'text-blue-500 bg-blue-50 dark:bg-blue-900/20', label: 'Follow' },
 };
 
 const FILTERS = [
@@ -39,6 +40,7 @@ const FILTERS = [
   { value: 'event', label: 'Events' },
   { value: 'approval', label: 'Approvals' },
   { value: 'leaderboard', label: 'Leaderboard' },
+  { value: 'follow', label: 'Follows' },
 ];
 
 export default function NotificationsPage() {
