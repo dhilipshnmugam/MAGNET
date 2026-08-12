@@ -135,76 +135,67 @@ backend/
 ├── alembic/             # Database migrations
 ├── alembic.ini
 ├── requirements.txt
-├── Dockerfile           # Optional but recommended
+├── .python-version      # Pins the Python version (e.g., 3.11.9)
 └── render.yaml          # Service blueprint
 ```
 
-### 2.2 Create a Dockerfile
+### 2.2 Native Python runtime (no Docker)
 
-Create `magnet/backend/Dockerfile`:
+The backend runs on Render's native Python runtime — no `Dockerfile` required. Python version is pinned with `backend/.python-version`:
 
-```dockerfile
-FROM python:3.11-slim
-
-WORKDIR /app
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    libpq-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Python dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy application code
-COPY . .
-
-# Run migrations then start the server
-CMD alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+```
+3.11.9
 ```
 
 ### 2.3 Create render.yaml (Optional)
 
-Create `magnet/render.yaml`:
+Create `magnet/render.yaml` (a two-service blueprint: backend + frontend):
 
 ```yaml
 services:
+  # Backend API (FastAPI, native Python)
   - type: web
     name: magnet-backend
-    runtime: docker
-    repo: https://github.com/YOUR_USERNAME/magnet
+    runtime: python
     rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app.main:app --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT --workers ${WEB_CONCURRENCY:-1}
+    plan: free
     healthCheckPath: /health
     envVars:
       - key: DATABASE_URL
         sync: false
       - key: SECRET_KEY
         generateValue: true
-      - key: CLOUDINARY_CLOUD_NAME
-        sync: false
-      - key: CLOUDINARY_API_KEY
-        sync: false
-      - key: CLOUDINARY_API_SECRET
-        sync: false
-      - key: FRONTEND_URL
-        value: https://your-app.vercel.app
-      - key: ALLOWED_ORIGINS
-        value: https://your-app.vercel.app
+      - key: DEBUG
+        value: "false"
+
+  # Frontend (React static site)
+  - type: web
+    name: magnet-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
 ```
 
 ### 2.4 Create Web Service on Render
 
 1. Go to [https://dashboard.render.com](https://dashboard.render.com)
-2. Click **"New +"** → **"Web Service"**
+2. Click **"New +"** → **"Blueprint"** and pick the repo containing `render.yaml` (creates both services at once)
+   - Or **"New +"** → **"Web Service"** for the backend alone
 3. Connect your GitHub repository
-4. Configure:
+4. Configure the backend:
    - **Name:** `magnet-backend`
    - **Region:** Choose closest to Supabase region
-   - **Runtime:** `Docker`
-   - **Dockerfile Path:** `backend/Dockerfile` (or just `Dockerfile` if rootDir is set)
-   - **Docker Context:** `backend`
+   - **Runtime:** `Python 3`
+   - **Root Directory:** `backend`
+   - **Build Command:** `pip install -r requirements.txt`
+   - **Start Command:** `gunicorn app.main:app --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT --workers ${WEB_CONCURRENCY:-1}`
    - **Health Check Path:** `/health`
    - **Plan:** Free tier to start (upgrades available)
 5. Click **"Advanced"** and set environment variables (see 2.5)
@@ -279,7 +270,7 @@ async def health_check():
 | Cold starts take 30+ seconds | Free tier spins down after inactivity; upgrade to paid plan for always-on |
 | Render runs out of memory | Upgrade plan; free tier has 512MB RAM |
 | `ModuleNotFoundError` | Missing dependency in requirements.txt or wrong working directory |
-| Docker build fails | Ensure `Dockerfile` context is correct; check `.dockerignore` |
+| Build fails | Check the deploy logs; confirm `requirements.txt` installs cleanly and Python version in `.python-version` matches your dependencies |
 
 ---
 
@@ -952,7 +943,7 @@ main          → Production (auto-deploy)
 | Images not uploading | Cloudinary | Check API keys; verify upload preset name |
 | Push notifications not working | Firebase | Verify service account; check VAPID key |
 | Slow cold starts | Render | Upgrade to paid plan (always-on instances) |
-| Build exceeds memory | Render | Increase plan; optimize Docker image |
+| Build exceeds memory | Render | Increase plan; trim dependencies |
 | Environment variables not picked up | Vercel | Must be prefixed with `VITE_`; redeploy after adding |
 | Alembic migration fails | Supabase | Check connection string; ensure transaction mode |
 
@@ -1014,10 +1005,9 @@ curl -I https://your-app.vercel.app
 □ 3. Create Cloudinary account & get API keys
 □ 4. Create Firebase project & download service account JSON
 □ 5. Push code to GitHub
-□ 6. Deploy backend to Render (Docker)
-□ 7. Deploy frontend to Vercel
-□ 8. Set all environment variables on both platforms
-□ 9. Configure custom domains & DNS
+□ 6. Deploy backend to Render (Python) and frontend to Render (static site)
+□ 7. Set all environment variables on both services
+□ 8. Configure custom domains & DNS
 □ 10. Verify SSL certificates
 □ 11. Test health check endpoint
 □ 12. Test end-to-end flow (signup, login, create post, upload image, notifications)

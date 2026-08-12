@@ -93,7 +93,6 @@ magnet/
 │   ├── migrations/            # Additional SQL migration scripts
 │   ├── alembic/               # Alembic migration environment
 │   ├── alembic.ini            # Alembic configuration
-│   ├── Dockerfile             # Multi-stage production Docker build
 │   ├── requirements.txt       # Python dependencies
 │   └── run.py                 # Dev server entry point
 │
@@ -220,20 +219,17 @@ The frontend dev server starts at `http://localhost:5173` with automatic proxyin
 
 ---
 
-## Docker Setup
+## Production Deployment (Render)
 
-A multi-stage `Dockerfile` is provided for the backend, producing a minimal production image based on `python:3.11-slim`.
+The backend deploys to Render as a native Python service (no Docker required). Python version is pinned in `backend/.python-version`.
 
 ```bash
-# Build the backend image
-cd backend
-docker build -t magnet-backend .
-
-# Run the container
-docker run -p 8000:8000 --env-file .env magnet-backend
+# Backend service (render.yaml):
+#   buildCommand:  pip install -r requirements.txt
+#   startCommand:  gunicorn app.main:app --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT --workers ${WEB_CONCURRENCY:-1}
 ```
 
-The container runs uvicorn with 4 workers, exposes port 8000, and includes a built-in health check at `/health`.
+The frontend deploys as a Render static site (`frontend/`), and the `render.yaml` blueprint creates both services with a single click.
 
 ---
 
@@ -420,7 +416,6 @@ magnet/
 │   ├── alembic/
 │   ├── migrations/
 │   ├── alembic.ini
-│   ├── Dockerfile
 │   ├── requirements.txt
 │   └── run.py
 │

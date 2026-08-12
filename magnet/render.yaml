@@ -1,10 +1,11 @@
 services:
-  # Backend API (FastAPI, Docker image)
+  # Backend API (FastAPI, native Python)
   - type: web
     name: magnet-backend
-    runtime: docker
+    runtime: python
     rootDir: backend
-    dockerfilePath: Dockerfile
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app.main:app --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT --workers ${WEB_CONCURRENCY:-1}
     plan: free
     region: oregon
     healthCheckPath: /health
