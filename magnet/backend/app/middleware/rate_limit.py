@@ -16,6 +16,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         now = time.time()
         window = 60
 
+        self.requests.setdefault(client_ip, [])
         self.requests[client_ip] = [
             t for t in self.requests[client_ip] if now - t < window
         ]
@@ -30,11 +31,11 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         if now - self._last_cleanup > 60:
             self._last_cleanup = now
-            self.requests = {
+            self.requests = defaultdict(list, {
                 k: [t for t in v if now - t < 120]
                 for k, v in self.requests.items()
                 if any(now - t < 120 for t in v)
-            }
+            })
 
         response = await call_next(request)
         return response
