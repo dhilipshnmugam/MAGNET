@@ -24,9 +24,9 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: str = "http://localhost:5173"
 
     # Cloudinary
-    CLOUDINARY_CLOUD_NAME: str
-    CLOUDINARY_API_KEY: str
-    CLOUDINARY_API_SECRET: str
+    CLOUDINARY_CLOUD_NAME: str = ""
+    CLOUDINARY_API_KEY: str = ""
+    CLOUDINARY_API_SECRET: str = ""
 
     # Firebase
     FIREBASE_CREDENTIALS_PATH: str = "./firebase-service-account.json"
@@ -60,6 +60,12 @@ class Settings(BaseSettings):
                 abs_path = os.path.normpath(os.path.join(BACKEND_DIR, raw_path))
                 object.__setattr__(self, "DATABASE_URL", f"{prefix}{abs_path}")
                 os.makedirs(os.path.dirname(abs_path), exist_ok=True)
+        elif self.DATABASE_URL.startswith(("postgres://", "postgresql://")):
+            object.__setattr__(
+                self,
+                "DATABASE_URL",
+                "postgresql+asyncpg://" + self.DATABASE_URL.split("://", 1)[1],
+            )
 
 
 settings = Settings()

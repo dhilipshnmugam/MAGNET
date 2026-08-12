@@ -1,28 +1,29 @@
 services:
+  # Backend API (FastAPI, Docker image)
   - type: web
     name: magnet-backend
     runtime: docker
     rootDir: backend
     dockerfilePath: Dockerfile
-    plan: starter
+    plan: free
+    region: oregon
     healthCheckPath: /health
-    autoDeploy: true
     envVars:
       - key: DATABASE_URL
         sync: false
       - key: SECRET_KEY
-        sync: false
-      - key: ALLOWED_ORIGINS
-        sync: false
-      - key: FRONTEND_URL
-        sync: false
+        generateValue: true
       - key: DEBUG
         value: "false"
-      - key: CLOUDINARY_CLOUD_NAME
-        sync: false
-      - key: CLOUDINARY_API_KEY
-        sync: false
-      - key: CLOUDINARY_API_SECRET
-        sync: false
-      - key: FIREBASE_CREDENTIALS_PATH
-        sync: false
+
+  # Frontend (React static site)
+  - type: web
+    name: magnet-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
