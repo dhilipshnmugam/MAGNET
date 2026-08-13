@@ -9,6 +9,7 @@ from app.models.club import Club
 from app.models.post import Post
 from app.models.event import Event
 from app.models.points import Point
+from app.utils.datetime_utils import utc_isoformat
 
 
 async def generate_dept_code(db: AsyncSession) -> str:
@@ -80,7 +81,7 @@ def _serialize_member(user: User, points: int = 0) -> dict:
         "department_id": str(user.department_id) if user.department_id else None,
         "department_name": user.department_name,
         "points": points,
-        "created_at": user.created_at.isoformat() if user.created_at else None,
+        "created_at": utc_isoformat(user.created_at),
     }
 
 
@@ -95,7 +96,7 @@ def _serialize_club(club: Club) -> dict:
         "banner_url": club.banner_url,
         "member_count": len(club.members) if club.members else 0,
         "status": club.status,
-        "created_at": club.created_at.isoformat() if club.created_at else None,
+        "created_at": utc_isoformat(club.created_at),
     }
 
 
@@ -111,7 +112,7 @@ def _serialize_post(post: Post) -> dict:
         "visibility": post.visibility,
         "like_count": post.like_count,
         "comment_count": post.comment_count,
-        "created_at": post.created_at.isoformat() if post.created_at else None,
+        "created_at": utc_isoformat(post.created_at),
         "author": {
             "id": str(post.author.id),
             "full_name": post.author.full_name,
@@ -138,8 +139,8 @@ def _serialize_event(event: Event) -> dict:
         "id": str(event.id),
         "title": event.title,
         "description": event.description,
-        "event_date": event.event_date.isoformat() if event.event_date else None,
-        "end_date": event.end_date.isoformat() if event.end_date else None,
+        "event_date": utc_isoformat(event.event_date),
+        "end_date": utc_isoformat(event.end_date),
         "banner_url": event.banner_url,
         "organizer_name": event.organizer_name or (event.club.name if event.club else None),
         "creator_name": event.creator.full_name if event.creator else None,
@@ -147,7 +148,7 @@ def _serialize_event(event: Event) -> dict:
         "club_name": event.club.name if event.club else None,
         "contact_email": event.contact_email,
         "contact_phone": event.contact_phone,
-        "created_at": event.created_at.isoformat() if event.created_at else None,
+        "created_at": utc_isoformat(event.created_at),
     }
 
 

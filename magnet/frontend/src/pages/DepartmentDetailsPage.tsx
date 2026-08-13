@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { PageLoader } from '../components/common/Loader';
 import EmptyState from '../components/common/EmptyState';
 import toast from 'react-hot-toast';
-import { cn } from '../utils/helpers';
+import { cn, formatDateOnly, formatDateTime } from '../utils/helpers';
 
 type DeptTab = 'overview' | 'posts' | 'students' | 'faculty' | 'clubs' | 'events' | 'achievements';
 
@@ -86,7 +86,7 @@ function EventRow({ event, onClick }: { event: any; onClick: () => void }) {
       <div className="min-w-0 flex-1">
         <p className="font-semibold truncate">{event.title}</p>
         <p className="text-xs text-gray-500 truncate">
-          {[event.event_date ? new Date(event.event_date).toLocaleDateString() : null, event.organizer_name || event.creator_name, event.venue].filter(Boolean).join(' · ')}
+          {[event.event_date ? formatDateOnly(event.event_date) : null, event.organizer_name || event.creator_name, event.venue].filter(Boolean).join(' · ')}
         </p>
       </div>
       <ChevronRight className="h-4 w-4 text-gray-400" />
@@ -224,7 +224,7 @@ export default function DepartmentDetailsPage() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <button onClick={() => post.author?.id && navigate(`/profile/${post.author.id}`)} className="font-semibold hover:underline">{post.author?.full_name || 'Unknown'}</button>
-                        <span className="text-xs text-gray-400">{post.created_at ? new Date(post.created_at).toLocaleString() : ''}</span>
+                        <span className="text-xs text-gray-400">{post.created_at ? formatDateTime(post.created_at) : ''}</span>
                       </div>
                       <p className="mt-1 whitespace-pre-line text-sm text-gray-600 dark:text-gray-300">{post.content}</p>
                     </div>

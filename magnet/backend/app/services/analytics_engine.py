@@ -10,6 +10,7 @@ from datetime import datetime, timedelta, date
 from uuid import UUID
 from sqlalchemy import select, func, text, case, and_
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.utils.datetime_utils import utc_isoformat
 
 from app.models.user import User, Student, Hod
 from app.models.post import Post
@@ -376,7 +377,7 @@ async def hod_self_dashboard(db: AsyncSession, staff_id: UUID) -> dict:
     """)
     events_result = await db.execute(events_q, {"staff_id": sid})
     events = [
-        {"id": str(r.id), "title": r.title, "event_date": r.event_date.isoformat() if r.event_date else "", "rsvp_count": r.rsvp_count, "event_type": r.event_type}
+        {"id": str(r.id), "title": r.title, "event_date": utc_isoformat(r.event_date) or "", "rsvp_count": r.rsvp_count, "event_type": r.event_type}
         for r in events_result.all()
     ]
 

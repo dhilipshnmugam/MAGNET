@@ -11,6 +11,7 @@ from app.models.project import Project, ProjectMember, ProjectInvitation, Projec
 from app.models.notification import Notification
 from app.models.user import User
 from app.services import notification_service
+from app.utils.datetime_utils import utc_isoformat
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
 
@@ -63,7 +64,7 @@ async def list_projects(
                 "status": p.status,
                 "owner": {"id": str(p.owner.id), "full_name": p.owner.full_name, "avatar_url": p.owner.avatar_url},
                 "member_count": len(p.members),
-                "created_at": p.created_at.isoformat() if p.created_at else None,
+                "created_at": utc_isoformat(p.created_at),
             }
             for p in projects
         ],
@@ -114,8 +115,8 @@ async def list_my_projects(
                 "task_count": total_tasks,
                 "completed_task_count": completed_tasks,
                 "my_role": membership.role if membership else "owner",
-                "created_at": p.created_at.isoformat() if p.created_at else None,
-                "updated_at": p.updated_at.isoformat() if p.updated_at else None,
+                "created_at": utc_isoformat(p.created_at),
+                "updated_at": utc_isoformat(p.updated_at),
             })
 
     return {"projects": projects}
@@ -160,7 +161,7 @@ async def get_project(
                     "full_name": m.user.full_name,
                     "avatar_url": m.user.avatar_url,
                     "role": m.role,
-                    "joined_at": m.joined_at.isoformat() if m.joined_at else None,
+                    "joined_at": utc_isoformat(m.joined_at),
                 }
                 for m in project.members
             ],
@@ -171,15 +172,15 @@ async def get_project(
                     "description": t.description,
                     "assigned_to": str(t.assigned_to) if t.assigned_to else None,
                     "assignee_name": t.assignee.full_name if t.assignee else None,
-                    "deadline": t.deadline.isoformat() if t.deadline else None,
+                    "deadline": utc_isoformat(t.deadline),
                     "priority": t.priority,
                     "status": t.status,
-                    "created_at": t.created_at.isoformat() if t.created_at else None,
+                    "created_at": utc_isoformat(t.created_at),
                 }
                 for t in project.tasks
             ],
-            "created_at": project.created_at.isoformat() if project.created_at else None,
-            "updated_at": project.updated_at.isoformat() if project.updated_at else None,
+            "created_at": utc_isoformat(project.created_at),
+            "updated_at": utc_isoformat(project.updated_at),
             "is_member": len(memberships) > 0 or project.owner_id == current_user.id,
             "my_role": memberships[0].role if memberships else ("owner" if project.owner_id == current_user.id else None),
             "has_pending_invitation": len(invitations) > 0,

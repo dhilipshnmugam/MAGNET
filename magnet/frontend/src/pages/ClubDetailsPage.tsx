@@ -11,7 +11,7 @@ import {
   Phone, Globe as GlobeIcon, Linkedin, Link, X, Clock, MapPin, ChevronRight,
   Check, Sparkles, Building2, ShieldCheck, Target, Activity, MessageSquare,
 } from 'lucide-react';
-import { cn, timeAgo, eventMonth, eventDay, isPastEvent, formatEventDate } from '../utils/helpers';
+import { cn, timeAgo, eventMonth, eventDay, isPastEvent, formatEventDate, formatDateOnly, formatDateTime } from '../utils/helpers';
 
 const TABS = [
   { id: 'about', label: 'About', icon: Info },
@@ -70,7 +70,7 @@ function AboutTab({ club }: { club: any }) {
             value={club.approval_mode === 'auto' ? 'Auto-join' : 'Manual approval'}
           />
           {club.created_at && (
-            <DetailRow icon={<Clock className="h-4 w-4" />} label="Created" value={new Date(club.created_at).toLocaleDateString()} />
+            <DetailRow icon={<Clock className="h-4 w-4" />} label="Created" value={formatDateOnly(club.created_at)} />
           )}
         </div>
       </div>
@@ -136,7 +136,7 @@ function EventCard({ event, onClick }: { event: any; onClick: () => void }) {
           {event.venue && (
             <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {event.venue}</span>
           )}
-          <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {new Date(event.event_date).toLocaleString()}</span>
+          <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {formatDateTime(event.event_date)}</span>
           {event.rsvp_count > 0 && (
             <span className="flex items-center gap-1"><Users className="h-3 w-3" /> {event.rsvp_count} attending</span>
           )}
@@ -487,7 +487,7 @@ export default function ClubDetailsPage() {
                     </div>
                     {ach.description && <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{ach.description}</p>}
                     {ach.achieved_date && (
-                      <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">Achieved {new Date(ach.achieved_date).toLocaleDateString()}</p>
+                      <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">Achieved {formatDateOnly(ach.achieved_date)}</p>
                     )}
                   </div>
                 </div>

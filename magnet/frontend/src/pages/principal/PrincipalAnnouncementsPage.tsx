@@ -6,8 +6,8 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Avatar from '../../components/common/Avatar';
 import toast from 'react-hot-toast';
-import { format } from 'date-fns';
 import type { Announcement } from '../../types';
+import { formatDateOnly } from '../../utils/helpers';
 
 export default function PrincipalAnnouncementsPage() {
   const { user } = useAuth();
@@ -157,7 +157,7 @@ export default function PrincipalAnnouncementsPage() {
                       <span>·</span>
                       <span className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
-                        {format(new Date(a.created_at), 'MMM d, yyyy')}
+                        {formatDateOnly(a.created_at)}
                       </span>
                       <span>·</span>
                       <span className="capitalize">{a.target_type}</span>

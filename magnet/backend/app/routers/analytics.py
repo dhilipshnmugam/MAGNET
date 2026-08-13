@@ -13,6 +13,7 @@ from app.models.project import Project, ProjectMember
 from app.models.club import ClubMember
 from app.schemas.common import ResponseModel
 from app.services import analytics_engine
+from app.utils.datetime_utils import utc_isoformat
 
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
 
@@ -86,7 +87,7 @@ async def get_post_analytics(
                 "share_count": p.share_count or 0,
                 "view_count": p.view_count or 0,
                 "bookmark_count": p.bookmark_count or 0,
-                "created_at": p.created_at.isoformat() if p.created_at else None,
+                "created_at": utc_isoformat(p.created_at),
             }
             for p in posts
         ]
@@ -113,7 +114,7 @@ async def get_activity_heatmap(
     heatmap_data = {}
     max_count = 0
     for a in activities:
-        heatmap_data[a.activity_date.isoformat()] = {
+        heatmap_data[utc_isoformat(a.activity_date)] = {
             "count": a.action_count,
             "hours": a.hours_spent,
         }

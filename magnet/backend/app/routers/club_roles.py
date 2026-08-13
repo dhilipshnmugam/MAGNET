@@ -7,6 +7,7 @@ from app.dependencies import get_db, get_current_user
 from app.models.club import Club, ClubMember
 from app.models.club_extras import ClubRole, ClubAssignment
 from app.models.user import User
+from app.utils.datetime_utils import utc_isoformat
 
 router = APIRouter(prefix="/clubs", tags=["Club Roles"])
 
@@ -164,10 +165,10 @@ async def list_club_assignments(
                 "member_name": a.member.user.full_name if a.member else None,
                 "member_id": str(a.member.id) if a.member else None,
                 "assigned_by": a.assigner.full_name if a.assigner else None,
-                "deadline": a.deadline.isoformat() if a.deadline else None,
+                "deadline": utc_isoformat(a.deadline),
                 "priority": a.priority,
                 "status": a.status,
-                "created_at": a.created_at.isoformat() if a.created_at else None,
+                "created_at": utc_isoformat(a.created_at),
             }
             for a in assignments
         ]

@@ -1,6 +1,6 @@
 import { Trophy, Award, Calendar } from 'lucide-react';
-import { format } from 'date-fns';
 import type { ProfileAchievement } from '../../types';
+import { formatDateOnly } from '../../utils/helpers';
 
 interface AchievementsTabProps {
   achievements: ProfileAchievement[];
@@ -59,7 +59,7 @@ export default function AchievementsTab({ achievements, loading }: AchievementsT
             )}
             {ach.date && (
               <p className="mt-2 flex items-center gap-1 text-[11px] text-gray-400">
-                <Calendar className="h-3 w-3" /> {format(new Date(ach.date), 'MMM d, yyyy')}
+                <Calendar className="h-3 w-3" /> {formatDateOnly(ach.date)}
               </p>
             )}
           </div>

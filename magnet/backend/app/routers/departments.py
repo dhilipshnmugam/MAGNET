@@ -12,6 +12,7 @@ from app.schemas.user import UserOut
 from app.schemas.post import PostOut
 from app.schemas.common import ResponseModel, PaginatedResponse
 from app.services import department_service
+from app.utils.datetime_utils import utc_isoformat
 
 router = APIRouter(prefix="/departments", tags=["Departments"])
 
@@ -179,8 +180,8 @@ async def get_department_users(
             "register_number": u.register_number,
             "department_id": str(u.department_id) if u.department_id else None,
             "points": points_map.get(str(u.id), 0),
-            "last_seen_at": u.last_seen_at.isoformat() if u.last_seen_at else None,
-            "created_at": u.created_at.isoformat() if u.created_at else None,
+            "last_seen_at": utc_isoformat(u.last_seen_at),
+            "created_at": utc_isoformat(u.created_at),
         }
         for u in users
     ]

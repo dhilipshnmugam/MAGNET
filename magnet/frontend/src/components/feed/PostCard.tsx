@@ -8,7 +8,7 @@ import {
 import { Post } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { postService, messageService } from '../../services';
-import { timeAgo, cn } from '../../utils/helpers';
+import { timeAgo, cn, parseTimestamp, formatDateOnly } from '../../utils/helpers';
 import Avatar from '../common/Avatar';
 import Modal from '../common/Modal';
 import { getApiError } from '../../services/api';
@@ -138,7 +138,8 @@ function formatCount(n: number): string {
 
 function getTimeUntil(dateStr: string): string {
   const now = new Date();
-  const target = new Date(dateStr);
+  const target = parseTimestamp(dateStr);
+  if (!target) return '';
   const diff = target.getTime() - now.getTime();
   if (diff <= 0) return 'Happening now';
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -421,7 +422,7 @@ export default function PostCard({ post, onDelete }: PostCardProps) {
               {post.event_date && (
                 <div className="flex items-center gap-1.5">
                   <Calendar className="h-3.5 w-3.5" />
-                  <span>{new Date(post.event_date).toLocaleDateString()}</span>
+                  <span>{formatDateOnly(post.event_date)}</span>
                 </div>
               )}
               {post.event_time && (

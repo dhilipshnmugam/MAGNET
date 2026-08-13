@@ -8,6 +8,7 @@ import { Event } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { PageLoader } from '../components/common/Loader';
 import toast from 'react-hot-toast';
+import { combineIST, istDateInput, istTimeInput, istToday } from '../utils/helpers';
 
 const CATEGORIES = [
   { value: 'general', label: 'General' },
@@ -88,14 +89,13 @@ export default function EventCreatePage() {
     eventService.getById(eventId).then((res) => {
       const ev: Event | null = res.data?.data || null;
       if (!ev) { toast.error('Event not found'); navigate('/events'); return; }
-      const dt = new Date(ev.event_date);
       setForm({
         title: ev.title || '',
         category: ev.category || 'general',
         event_type: ev.event_type || 'general',
-        date: dt.toISOString().slice(0, 10),
-        startTime: dt.toTimeString().slice(0, 5),
-        endTime: ev.end_date ? new Date(ev.end_date).toTimeString().slice(0, 5) : '',
+        date: ev.event_date ? istDateInput(ev.event_date) : '',
+        startTime: ev.event_date ? istTimeInput(ev.event_date) : '',
+        endTime: ev.end_date ? istTimeInput(ev.end_date) : '',
         venue: ev.venue || '',
         description: ev.description || '',
         registration_url: ev.registration_url || '',
@@ -129,20 +129,15 @@ export default function EventCreatePage() {
     }
   };
 
-  const combineDate = (date: string, time: string): string | null => {
-    if (!date || !time) return null;
-    return new Date(`${date}T${time}`).toISOString();
-  };
+  const combineDate = (date: string, time: string): string | null => combineIST(date, time);
 
   const validate = (): string | null => {
     if (!form.title.trim()) return 'Title is required';
     if (!form.date) return 'Event date is required';
     if (!form.startTime) return 'Start time is required';
     if (!isEdit) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const evDate = new Date(`${form.date}T00:00:00`);
-      if (evDate < today) return 'Event date cannot be in the past';
+      const evDate = combineIST(form.date, '00:00');
+      if (evDate && new Date(evDate) < istToday()) return 'Event date cannot be in the past';
     }
     if (form.endTime && form.endTime === form.startTime) return 'End time must be after start time';
     if (form.registration_url && !/^https?:\/\/.+/.test(form.registration_url)) return 'Registration link must start with http:// or https://';
@@ -159,9 +154,9 @@ export default function EventCreatePage() {
     if (form.endTime) {
       const end = combineDate(form.date, form.endTime);
       if (end && eventDate && end <= eventDate) {
-        const nextDay = new Date(`${form.date}T00:00:00`);
-        nextDay.setDate(nextDay.getDate() + 1);
-        endDate = combineDate(nextDay.toISOString().slice(0, 10), form.endTime);
+        const nextDay = new Date(combineIST(form.date, '00:00') as string);
+        nextDay.setUTCDate(nextDay.getUTCDate() + 1);
+        endDate = combineDate(istDateInput(nextDay), form.endTime);
       } else {
         endDate = end;
       }

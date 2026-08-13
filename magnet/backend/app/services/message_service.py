@@ -16,6 +16,7 @@ from app.models.post import Post
 from app.models.event import Event
 from app.models.club import Club
 from app.models.department import Department
+from app.utils.datetime_utils import utc_isoformat
 
 logger = logging.getLogger("magnet.messages")
 
@@ -56,7 +57,7 @@ async def _reply_preview(db: AsyncSession, reply_to_id: UUID | None) -> dict | N
         "message_type": msg.message_type,
         "sender_name": sender.full_name if sender else "Unknown",
         "image_url": msg.image_url,
-        "created_at": msg.created_at.isoformat() if msg.created_at else None,
+        "created_at": utc_isoformat(msg.created_at),
     }
 
 
@@ -96,8 +97,8 @@ async def serialize_message(db: AsyncSession, msg: DirectMessage, current_user: 
             "link_title": None,
             "link_description": None,
             "link_image": None,
-            "delivered_at": msg.delivered_at.isoformat() if msg.delivered_at else None,
-            "created_at": msg.created_at.isoformat() if msg.created_at else None,
+            "delivered_at": utc_isoformat(msg.delivered_at),
+            "created_at": utc_isoformat(msg.created_at),
             "attachments": [],
             "reactions": [],
             "reply_to": None,
@@ -158,9 +159,9 @@ async def serialize_message(db: AsyncSession, msg: DirectMessage, current_user: 
         "link_title": msg.link_title,
         "link_description": msg.link_description,
         "link_image": msg.link_image,
-        "delivered_at": msg.delivered_at.isoformat() if msg.delivered_at else None,
-        "edited_at": msg.edited_at.isoformat() if msg.edited_at else None,
-        "created_at": msg.created_at.isoformat() if msg.created_at else None,
+        "delivered_at": utc_isoformat(msg.delivered_at),
+        "edited_at": utc_isoformat(msg.edited_at),
+        "created_at": utc_isoformat(msg.created_at),
         "attachments": attachments,
         "reactions": reactions,
         "reply_to": reply,
@@ -650,7 +651,7 @@ async def _build_share_preview(db: AsyncSession, share_type: str, share_id: UUID
                 "event_id": str(event.id),
                 "title": event.title,
                 "description": (event.description or "")[:300],
-                "event_date": event.event_date.isoformat() if event.event_date else None,
+                "event_date": utc_isoformat(event.event_date),
                 "location": event.location,
                 "image_url": event.image_url,
                 "event_type": event.event_type,

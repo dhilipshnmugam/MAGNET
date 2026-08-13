@@ -5,6 +5,7 @@ from app.dependencies import get_db, get_current_user, require_super_admin
 from app.models.user import User
 from app.schemas.common import ResponseModel, PaginatedResponse
 from app.services import leaderboard_engine
+from app.utils.datetime_utils import utc_isoformat
 
 router = APIRouter(prefix="/leaderboard", tags=["Leaderboard"])
 
@@ -149,7 +150,7 @@ async def get_points_history(
             "ref_type": p.ref_type,
             "ref_id": str(p.ref_id) if p.ref_id else None,
             "description": p.description,
-            "created_at": p.created_at.isoformat(),
+            "created_at": utc_isoformat(p.created_at),
         }
         for p in points
     ]

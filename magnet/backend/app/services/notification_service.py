@@ -12,6 +12,7 @@ from app.models.notification import Notification, FCMToken, NotificationPreferen
 from app.models.user import User
 from app.utils.firebase import send_push_notification
 from app.utils.email import send_email
+from app.utils.datetime_utils import utc_isoformat
 
 logger = logging.getLogger("magnet.notifications")
 
@@ -113,7 +114,7 @@ async def create_notification(
                 "sender_name": sender_name,
                 "sender_avatar": sender_avatar,
                 "is_read": False,
-                "created_at": notification.created_at.isoformat() if notification.created_at else None,
+                "created_at": utc_isoformat(notification.created_at),
             },
         }
         await manager.send_to_user(str(user_id), ws_payload)

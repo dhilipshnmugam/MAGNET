@@ -4,6 +4,7 @@ import { clubManagementService } from '../../services';
 import { PageLoader } from '../../components/common/Loader';
 import toast from 'react-hot-toast';
 import { Trophy, ArrowLeft, Users, FileText, Calendar, Mail, Phone } from 'lucide-react';
+import { formatDateOnly } from '../../utils/helpers';
 
 export default function ClubDetailsPage() {
   const { clubId } = useParams();
@@ -71,7 +72,7 @@ export default function ClubDetailsPage() {
           { label: 'Members', value: club.member_count ?? 0, icon: Users, color: 'bg-sky-500' },
           { label: 'Posts', value: club.post_count ?? 0, icon: FileText, color: 'bg-green-500' },
           { label: 'Events', value: club.event_count ?? 0, icon: Calendar, color: 'bg-purple-500' },
-          { label: 'Created', value: club.created_at ? new Date(club.created_at).toLocaleDateString() : '—', icon: Calendar, color: 'bg-orange-500' },
+          { label: 'Created', value: club.created_at ? formatDateOnly(club.created_at) : '—', icon: Calendar, color: 'bg-orange-500' },
         ].map((s) => (
           <div key={s.label} className="rounded-2xl border border-gray-100 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
             <div className="flex items-center gap-3">

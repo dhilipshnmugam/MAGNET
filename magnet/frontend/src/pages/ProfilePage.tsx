@@ -17,8 +17,8 @@ import {
   Edit3, BarChart3, Plus, Clock, UserPlus, Check, MessageCircle,
   GraduationCap, MapPin, BadgeCheck, Briefcase, Building2, Code,
 } from 'lucide-react';
-import { format } from 'date-fns';
 import type { Post } from '../types';
+import { formatMonthYear } from '../utils/helpers';
 
 const ROLE_BADGE: Record<string, { bg: string; text: string; label: string }> = {
   student: { bg: 'bg-sky-100 dark:bg-sky-900/30', text: 'text-sky-700 dark:text-sky-300', label: 'Student' },
@@ -219,7 +219,7 @@ export default function ProfilePage() {
   if (!displayUser) return null;
 
   const badge = ROLE_BADGE[displayUser.role] || ROLE_BADGE.student;
-  const memberSince = format(new Date(displayUser.created_at), 'MMM yyyy');
+  const memberSince = formatMonthYear(displayUser.created_at);
   const canCreatePost = isOwn && authUser && authUser.role !== 'super_admin';
 
   return (

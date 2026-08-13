@@ -6,6 +6,7 @@ import { PageLoader } from '../components/common/Loader';
 import { ChartCard, StatCard, SimpleBarChart } from '../components/charts';
 import { GraduationCap, Users, Megaphone, Calendar, FileText, Heart, MessageCircle, TrendingUp, Building2, Trophy, BookOpen, Mail } from 'lucide-react';
 import type { User } from '../types';
+import { formatDateOnly } from '../utils/helpers';
 
 export default function HodDashboardPage() {
   const { user } = useAuth();
@@ -174,7 +175,7 @@ export default function HodDashboardPage() {
                       <div key={e.id} className="flex items-center justify-between rounded-xl p-3 hover:bg-gray-50 dark:hover:bg-gray-800">
                         <div>
                           <p className="font-medium text-sm">{e.title}</p>
-                          <p className="text-xs text-gray-500">{new Date(e.event_date).toLocaleDateString()}</p>
+                          <p className="text-xs text-gray-500">{formatDateOnly(e.event_date)}</p>
                         </div>
                         <span className="text-xs text-gray-500">{e.rsvp_count} RSVPs</span>
                       </div>
@@ -246,7 +247,7 @@ export default function HodDashboardPage() {
                           </span>
                         </td>
                         <td className="py-3 pr-4 text-gray-600 dark:text-gray-400">{s.college_name || '-'}</td>
-                        <td className="py-3 pr-4 text-gray-500 text-xs">{new Date(s.created_at).toLocaleDateString()}</td>
+                        <td className="py-3 pr-4 text-gray-500 text-xs">{formatDateOnly(s.created_at)}</td>
                       </tr>
                     ))}
                   </tbody>

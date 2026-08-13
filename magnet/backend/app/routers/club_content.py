@@ -8,6 +8,7 @@ from app.models.user import User
 from app.schemas.common import ResponseModel, PaginatedResponse
 from app.schemas.post import PostOut
 from app.services import club_content_service, post_service
+from app.utils.datetime_utils import utc_isoformat
 
 router = APIRouter(prefix="/clubs/{club_id}", tags=["Club Content"])
 
@@ -56,13 +57,13 @@ async def create_event(
             "club_id": str(event.club_id),
             "title": event.title,
             "description": event.description,
-            "event_date": event.event_date.isoformat(),
-            "end_date": event.end_date.isoformat() if event.end_date else None,
+            "event_date": utc_isoformat(event.event_date),
+            "end_date": utc_isoformat(event.end_date),
             "venue": event.venue,
             "event_type": event.event_type,
             "banner_url": event.banner_url,
             "rsvp_count": event.rsvp_count,
-            "created_at": event.created_at.isoformat(),
+            "created_at": utc_isoformat(event.created_at),
         },
         message="Event created successfully",
     )
@@ -82,14 +83,14 @@ async def list_events(
             "club_id": str(e.club_id),
             "title": e.title,
             "description": e.description,
-            "event_date": e.event_date.isoformat(),
-            "end_date": e.end_date.isoformat() if e.end_date else None,
+            "event_date": utc_isoformat(e.event_date),
+            "end_date": utc_isoformat(e.end_date),
             "venue": e.venue,
             "event_type": e.event_type,
             "banner_url": e.banner_url,
             "rsvp_count": e.rsvp_count,
             "is_active": e.is_active,
-            "created_at": e.created_at.isoformat(),
+            "created_at": utc_isoformat(e.created_at),
             "creator_name": e.creator.full_name if e.creator else None,
         }
         for e in events
@@ -131,7 +132,7 @@ async def add_gallery_item(
             "image_url": item.image_url,
             "caption": item.caption,
             "event_name": item.event_name,
-            "created_at": item.created_at.isoformat(),
+            "created_at": utc_isoformat(item.created_at),
         },
         message="Gallery item added successfully",
     )
@@ -152,7 +153,7 @@ async def list_gallery(
             "image_url": i.image_url,
             "caption": i.caption,
             "event_name": i.event_name,
-            "created_at": i.created_at.isoformat(),
+            "created_at": utc_isoformat(i.created_at),
             "uploader_name": i.uploader.full_name if i.uploader else None,
         }
         for i in items
@@ -196,9 +197,9 @@ async def create_achievement(
             "title": item.title,
             "description": item.description,
             "achievement_type": item.achievement_type,
-            "achieved_date": item.achieved_date.isoformat() if item.achieved_date else None,
+            "achieved_date": utc_isoformat(item.achieved_date),
             "certificate_url": item.certificate_url,
-            "created_at": item.created_at.isoformat(),
+            "created_at": utc_isoformat(item.created_at),
         },
         message="Achievement added successfully",
     )
@@ -219,9 +220,9 @@ async def list_achievements(
             "title": i.title,
             "description": i.description,
             "achievement_type": i.achievement_type,
-            "achieved_date": i.achieved_date.isoformat() if i.achieved_date else None,
+            "achieved_date": utc_isoformat(i.achieved_date),
             "certificate_url": i.certificate_url,
-            "created_at": i.created_at.isoformat(),
+            "created_at": utc_isoformat(i.created_at),
         }
         for i in items
     ]

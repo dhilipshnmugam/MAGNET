@@ -8,6 +8,7 @@ from app.models.department import Department
 from app.models.post import Post, Like, Bookmark
 from app.models.project import Project
 from app.schemas.post import PostOut
+from app.utils.datetime_utils import utc_isoformat
 
 
 def _build_user_result(u: User) -> dict:
@@ -70,7 +71,7 @@ def _build_project_result(p: Project) -> dict:
             if p.owner else None
         ),
         "member_count": len(p.members),
-        "created_at": p.created_at.isoformat() if p.created_at else None,
+        "created_at": utc_isoformat(p.created_at),
         "entity_type": "project",
     }
 

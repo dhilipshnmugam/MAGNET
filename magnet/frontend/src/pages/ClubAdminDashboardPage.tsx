@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { clubManagementService } from '../services';
 import toast from 'react-hot-toast';
 import { Users, Clock, Check, X, Trophy, Image, Award, Calendar, Settings, ChevronRight } from 'lucide-react';
+import { localISTToISO, combineIST, formatDateOnly, formatDateTime } from '../utils/helpers';
 
 export default function ClubAdminDashboardPage() {
   const [dashboard, setDashboard] = useState<any>(null);
@@ -74,7 +75,7 @@ export default function ClubAdminDashboardPage() {
   const handleCreateEvent = async () => {
     if (!clubId) return;
     try {
-      await clubManagementService.createEvent(clubId, { ...eventForm, event_date: new Date(eventForm.event_date).toISOString() });
+      await clubManagementService.createEvent(clubId, { ...eventForm, event_date: localISTToISO(eventForm.event_date) ?? undefined });
       toast.success('Event created');
       setEventModal(false);
       setEventForm({ title: '', description: '', event_date: '', venue: '', event_type: 'general' });
@@ -89,7 +90,7 @@ export default function ClubAdminDashboardPage() {
     try {
       await clubManagementService.createAchievement(clubId, {
         ...achievementForm,
-        achieved_date: achievementForm.achieved_date ? new Date(achievementForm.achieved_date).toISOString() : undefined,
+        achieved_date: achievementForm.achieved_date ? (combineIST(achievementForm.achieved_date, '00:00') ?? undefined) : undefined,
       });
       toast.success('Achievement added');
       setAchievementModal(false);
@@ -203,7 +204,7 @@ export default function ClubAdminDashboardPage() {
                   <p className="font-medium">{r.user_name || 'Unknown'}</p>
                   <p className="text-xs text-gray-400">{r.user_email}</p>
                   {r.message && <p className="mt-1 text-sm text-gray-500 italic">"{r.message}"</p>}
-                  <p className="mt-0.5 text-xs text-gray-400">Applied {new Date(r.created_at).toLocaleDateString()}</p>
+                  <p className="mt-0.5 text-xs text-gray-400">Applied {formatDateOnly(r.created_at)}</p>
                 </div>
                 <div className="flex gap-2">
                   <button onClick={() => handleReviewRequest(r.id, 'approved')}
@@ -249,7 +250,7 @@ export default function ClubAdminDashboardPage() {
                 <h4 className="font-semibold">{ev.title}</h4>
                 {ev.description && <p className="mt-1 text-sm text-gray-500">{ev.description}</p>}
                 <div className="mt-2 flex gap-3 text-xs text-gray-500">
-                  <span>{new Date(ev.event_date).toLocaleString()}</span>
+                  <span>{formatDateTime(ev.event_date)}</span>
                   {ev.venue && <span>{ev.venue}</span>}
                 </div>
               </div>
@@ -288,7 +289,7 @@ export default function ClubAdminDashboardPage() {
                 <div>
                   <h4 className="font-semibold">{ach.title}</h4>
                   {ach.description && <p className="mt-1 text-sm text-gray-500">{ach.description}</p>}
-                  {ach.achieved_date && <p className="mt-1 text-xs text-gray-400">{new Date(ach.achieved_date).toLocaleDateString()}</p>}
+                  {ach.achieved_date && <p className="mt-1 text-xs text-gray-400">{formatDateOnly(ach.achieved_date)}</p>}
                 </div>
               </div>
             ))}

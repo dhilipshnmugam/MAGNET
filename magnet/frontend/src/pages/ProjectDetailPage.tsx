@@ -4,6 +4,7 @@ import { projectService } from '../services';
 import { ArrowLeft, Code, Users, Clock, CheckCircle, Circle, AlertCircle, Plus, Trash2, Heart } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
+import { formatDateOnly } from '../utils/helpers';
 
 const STATUS_COLORS: Record<string, string> = {
   planning: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
@@ -149,7 +150,7 @@ export default function ProjectDetailPage() {
         <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-gray-500">
           <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" /> {project.members?.length || 0} members</span>
           <span className="flex items-center gap-1"><Code className="h-3.5 w-3.5" /> {project.category || 'Uncategorized'}</span>
-          <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {project.created_at ? new Date(project.created_at).toLocaleDateString() : ''}</span>
+          <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {project.created_at ? formatDateOnly(project.created_at) : ''}</span>
         </div>
 
         {project.tech_stack && Array.isArray(project.tech_stack) && (

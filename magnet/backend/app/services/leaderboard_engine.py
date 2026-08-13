@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.points import Point, Leaderboard, ClubRanking, DepartmentRanking, PeriodSnapshot
 from app.models.user import User
+from app.utils.datetime_utils import utc_isoformat
 from app.models.club import Club, ClubMember
 from app.models.department import Department
 from app.models.post import Post
@@ -114,7 +115,7 @@ async def top_students(
             "user_avatar": row.avatar_url,
             "total_points": row.total_points,
             "total_activities": row.total_activities,
-            "last_active": row.last_active.isoformat() if row.last_active else None,
+            "last_active": utc_isoformat(row.last_active),
         }
         for row in rows
     ]
@@ -665,7 +666,7 @@ async def my_ranking(db: AsyncSession, user_id: UUID) -> dict:
             "activity_type": r.activity_type,
             "points_value": r.points_value,
             "description": r.description,
-            "created_at": r.created_at.isoformat(),
+            "created_at": utc_isoformat(r.created_at),
         }
         for r in recent_result.all()
     ]
