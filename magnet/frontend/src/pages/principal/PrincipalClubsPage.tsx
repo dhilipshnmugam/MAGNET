@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { analyticsService, ClubPerformance } from '../../services/analyticsService';
 import { PageLoader } from '../../components/common/Loader';
 import { ChartCard, SimpleBarChart } from '../../components/charts';
-import { Trophy, Users, FileText, ArrowLeft, TrendingUp, Crown } from 'lucide-react';
+import { Trophy, Users, FileText, ArrowLeft, TrendingUp, Crown, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Avatar from '../../components/common/Avatar';
 
@@ -118,6 +118,13 @@ export default function PrincipalClubsPage() {
                 <p className="text-xs text-gray-500">Active</p>
               </div>
             </div>
+
+            <Link
+              to={`/clubs/${club.club_id}`}
+              className="mt-4 flex items-center justify-center gap-1 rounded-lg bg-gray-50 px-3 py-2 text-sm font-semibold text-violet-600 transition-colors hover:bg-violet-50 dark:bg-gray-800 dark:text-violet-400 dark:hover:bg-gray-700"
+            >
+              View Details <ChevronRight className="h-4 w-4" />
+            </Link>
           </div>
         ))}
       </div>

@@ -24,6 +24,18 @@ from app.models.activity_log import ActivityLog
 logger = logging.getLogger("magnet.analytics")
 
 
+def _to_iso(value):
+    """Convert a raw-SQL datetime column (datetime object or ISO string) to ISO-8601 string."""
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return utc_isoformat(value)
+    try:
+        return utc_isoformat(datetime.fromisoformat(str(value)))
+    except (ValueError, TypeError):
+        return str(value)
+
+
 # ══════════════════════════════════════════════
 #  1. STUDENT GROWTH (monthly signups)
 # ══════════════════════════════════════════════
@@ -598,3 +610,151 @@ async def principal_department_details(db: AsyncSession, department_id: UUID) ->
         "activity_trend": activity_trend,
         "posts_over_time": posts_over_time,
     }
+
+
+# ══════════════════════════════════════════════
+#  12. PRINCIPAL DRILL-DOWN: USERS LIST
+# ══════════════════════════════════════════════
+
+
+async def principal_users_list(
+    db: AsyncSession,
+    role: str = "all",
+    search: str = "",
+    page: int = 1,
+    page_size: int = 20,
+) -> dict:
+    conditions = ["1=1"]
+    params: dict = {}
+    if role and role != "all":
+        conditions.append("u.role = :role")
+        params["role"] = role
+    if search:
+        conditions.append("(u.full_name LIKE :s OR u.email LIKE :s OR u.register_number LIKE :s)")
+        params["s"] = f"%{search}%"
+    where_sql = " AND ".join(conditions)
+    offset = (page - 1) * page_size
+
+    count_sql = text(
+        "SELECT COUNT(*) AS total FROM users u "
+        f"WHERE {where_sql}"
+    )
+    total = (await db.execute(count_sql, params)).scalar_one() or 0
+
+    list_sql = text(
+        """
+        SELECT
+            u.id, u.full_name, u.avatar_url, u.email, u.role, u.is_active,
+            u.department_id, d.name AS department_name, u.year,
+            u.register_number, u.last_seen_at, u.created_at,
+            COALESCE((SELECT SUM(points_value) FROM points WHERE user_id = u.id), 0) AS points,
+            (SELECT COUNT(*) FROM posts WHERE author_id = u.id AND is_approved = 1) AS post_count
+        FROM users u
+        LEFT JOIN departments d ON d.id = u.department_id
+        WHERE %s
+        ORDER BY
+            CASE u.role WHEN 'student' THEN 1 WHEN 'department_admin' THEN 2
+                        WHEN 'club_admin' THEN 3 WHEN 'principal' THEN 4 ELSE 5 END,
+            u.full_name
+        LIMIT :limit OFFSET :offset
+        """
+        % where_sql
+    )
+    params["limit"] = page_size
+    params["offset"] = offset
+    rows = (await db.execute(list_sql, params)).mappings().all()
+
+    items = []
+    for r in rows:
+        items.append(
+            {
+                "id": str(r["id"]),
+                "full_name": r["full_name"],
+                "avatar_url": r["avatar_url"],
+                "email": r["email"],
+                "role": r["role"],
+                "is_active": bool(r["is_active"]),
+                "department_id": str(r["department_id"]) if r["department_id"] else None,
+                "department_name": r["department_name"],
+                "year": r["year"],
+                "register_number": r["register_number"],
+                "last_seen_at": _to_iso(r["last_seen_at"]),
+                "created_at": _to_iso(r["created_at"]),
+                "points": int(r["points"] or 0),
+                "post_count": int(r["post_count"] or 0),
+            }
+        )
+    return {"items": items, "total": int(total), "page": page, "page_size": page_size}
+
+
+# ══════════════════════════════════════════════
+#  13. PRINCIPAL DRILL-DOWN: POSTS LIST
+# ══════════════════════════════════════════════
+
+
+async def principal_posts_list(
+    db: AsyncSession,
+    search: str = "",
+    page: int = 1,
+    page_size: int = 20,
+) -> dict:
+    conditions = ["p.is_approved = 1"]
+    params: dict = {}
+    if search:
+        conditions.append("(p.content LIKE :s OR p.title LIKE :s)")
+        params["s"] = f"%{search}%"
+    where_sql = " AND ".join(conditions)
+    offset = (page - 1) * page_size
+
+    count_sql = text(
+        "SELECT COUNT(*) AS total FROM posts p "
+        f"WHERE {where_sql}"
+    )
+    total = (await db.execute(count_sql, params)).scalar_one() or 0
+
+    list_sql = text(
+        """
+        SELECT
+            p.id, p.content, p.title, p.post_type, p.image_url,
+            p.like_count, p.comment_count, p.created_at,
+            a.id AS author_id, a.full_name AS author_name, a.avatar_url AS author_avatar,
+            a.role AS author_role,
+            c.name AS club_name, d.name AS department_name
+        FROM posts p
+        JOIN users a ON a.id = p.author_id
+        LEFT JOIN clubs c ON c.id = p.club_id
+        LEFT JOIN departments d ON d.id = a.department_id
+        WHERE %s
+        ORDER BY p.created_at DESC
+        LIMIT :limit OFFSET :offset
+        """
+        % where_sql
+    )
+    params["limit"] = page_size
+    params["offset"] = offset
+    rows = (await db.execute(list_sql, params)).mappings().all()
+
+    items = []
+    for r in rows:
+        content = r["content"] or ""
+        items.append(
+            {
+                "id": str(r["id"]),
+                "content": content[:300],
+                "title": r["title"],
+                "post_type": r["post_type"],
+                "image_url": r["image_url"],
+                "like_count": int(r["like_count"] or 0),
+                "comment_count": int(r["comment_count"] or 0),
+                "created_at": _to_iso(r["created_at"]),
+                "author": {
+                    "id": str(r["author_id"]),
+                    "full_name": r["author_name"],
+                    "avatar_url": r["author_avatar"],
+                    "role": r["author_role"],
+                },
+                "club_name": r["club_name"],
+                "department_name": r["department_name"],
+            }
+        )
+    return {"items": items, "total": int(total), "page": page, "page_size": page_size}

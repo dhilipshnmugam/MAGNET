@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   leaderboardService,
   LeaderboardEntry,
@@ -10,7 +10,7 @@ import {
 } from '../services/leaderboardService';
 import { PageLoader } from '../components/common/Loader';
 import EmptyState from '../components/common/EmptyState';
-import { Trophy, Medal, Flame, Users, Building2, Crown, ChevronDown, Calendar, TrendingUp, BarChart3, Zap } from 'lucide-react';
+import { Trophy, Medal, Flame, Users, Building2, Crown, ChevronDown, Calendar, TrendingUp, BarChart3, Zap, AlertTriangle, RefreshCw } from 'lucide-react';
 import Avatar from '../components/common/Avatar';
 import { useAuth } from '../context/AuthContext';
 import { cn } from '../utils/helpers';
@@ -40,29 +40,35 @@ export default function LeaderboardPage() {
   const [period, setPeriod] = useState<Period>('overall');
   const [entries, setEntries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showRules, setShowRules] = useState(false);
+  const requestKeyRef = useRef('');
 
   useEffect(() => {
     loadRankings();
   }, [tab, period]);
 
   async function loadRankings() {
+    const key = `${tab}:${period}`;
+    if (requestKeyRef.current === key) return;
+    requestKeyRef.current = key;
     setLoading(true);
+    setEntries([]);
+    setError(null);
     try {
       const entityType: EntityType = tab === 'students' ? 'user' : tab === 'clubs' ? 'club' : 'department';
       const limit = 50;
 
-      if (period === 'overall') {
-        const res = await leaderboardService.getOverall(entityType, limit);
-        setEntries(res.data.data || []);
-      } else {
-        let res;
-        if (period === 'weekly') res = await leaderboardService.getWeekly(entityType, limit);
-        else if (period === 'monthly') res = await leaderboardService.getMonthly(entityType, limit);
-        else res = await leaderboardService.getYearly(entityType, limit);
-        setEntries(res.data.data || []);
-      }
-    } catch {
+      let res;
+      if (period === 'overall') res = await leaderboardService.getOverall(entityType, limit);
+      else if (period === 'weekly') res = await leaderboardService.getWeekly(entityType, limit);
+      else if (period === 'monthly') res = await leaderboardService.getMonthly(entityType, limit);
+      else res = await leaderboardService.getYearly(entityType, limit);
+
+      setEntries(Array.isArray(res.data?.data) ? res.data.data : []);
+    } catch (err) {
+      console.error('Leaderboard load failed:', err);
+      setError('Could not load the leaderboard. Please check your connection and try again.');
       setEntries([]);
     } finally {
       setLoading(false);
@@ -84,9 +90,9 @@ export default function LeaderboardPage() {
 
   const periods: Period[] = ['overall', 'weekly', 'monthly', 'yearly'];
 
-  const getPointsLabel = (entry: any) => {
-    if (period === 'overall') return entry.total_points;
-    return entry.points_earned;
+  const getPointsLabel = (entry: any): number => {
+    const value = period === 'overall' ? entry?.total_points : entry?.points_earned;
+    return typeof value === 'number' ? value : 0;
   };
 
   const getName = (entry: any) => {
@@ -133,7 +139,13 @@ export default function LeaderboardPage() {
         {tabs.map((t) => (
           <button
             key={t.key}
-            onClick={() => setTab(t.key)}
+            onClick={() => {
+              if (tab !== t.key) {
+                setTab(t.key);
+                setLoading(true);
+                setEntries([]);
+              }
+            }}
             className={cn(
               'flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all',
               tab === t.key
@@ -154,7 +166,13 @@ export default function LeaderboardPage() {
           return (
             <button
               key={p}
-              onClick={() => setPeriod(p)}
+              onClick={() => {
+                if (period !== p) {
+                  setPeriod(p);
+                  setLoading(true);
+                  setEntries([]);
+                }
+              }}
               className={cn(
                 'flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-all',
                 period === p
@@ -172,10 +190,21 @@ export default function LeaderboardPage() {
       {/* Content */}
       {loading ? (
         <PageLoader />
+      ) : error ? (
+        <EmptyState
+          icon={<AlertTriangle className="h-12 w-12 text-red-500" />}
+          title="Something went wrong"
+          description={error}
+          action={
+            <button onClick={loadRankings} className="btn-primary mt-4">
+              <RefreshCw className="h-4 w-4" /> Try Again
+            </button>
+          }
+        />
       ) : entries.length === 0 ? (
         <EmptyState
           icon={<Trophy className="h-12 w-12" />}
-          title="No rankings yet"
+          title="No leaderboard data available for this period."
           description="Points will appear as users engage with the platform."
         />
       ) : (

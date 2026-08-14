@@ -47,6 +47,10 @@ EVENTS_COLUMNS = {
     "additional_info": "TEXT",
 }
 
+STORIES_COLUMNS = {
+    "view_count": "INTEGER NOT NULL DEFAULT 0",
+}
+
 NOTIFICATION_TYPES_SQL = (
     "'post', 'like', 'comment', 'mention', 'event', 'event_reminder',"
     "'approval', 'rejected', 'leaderboard', 'message', 'announcement',"
@@ -262,6 +266,7 @@ async def run_migrations(conn) -> int:
     changes += await _ensure_columns(conn, "direct_messages", DIRECT_MESSAGE_COLUMNS, is_sqlite)
     changes += await _ensure_columns(conn, "users", USERS_COLUMNS, is_sqlite)
     changes += await _ensure_columns(conn, "events", EVENTS_COLUMNS, is_sqlite)
+    changes += await _ensure_columns(conn, "stories", STORIES_COLUMNS, is_sqlite)
     changes += await _backfill_conversations(conn, is_sqlite)
     changes += await _rebuild_notifications_check(conn, is_sqlite)
     changes += await _rebuild_user_follows_unique(conn, is_sqlite)

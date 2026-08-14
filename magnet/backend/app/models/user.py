@@ -64,6 +64,10 @@ class User(Base):
     project_memberships = relationship("ProjectMember", back_populates="user", cascade="all, delete-orphan")
     project_interests = relationship("ProjectInterest", back_populates="user", cascade="all, delete-orphan")
     activities = relationship("UserActivity", back_populates="user", cascade="all, delete-orphan")
+    stories = relationship("Story", back_populates="creator", foreign_keys="Story.creator_id", cascade="all, delete-orphan")
+    story_likes = relationship("StoryLike", back_populates="user", cascade="all, delete-orphan")
+    story_comments = relationship("StoryComment", back_populates="author", cascade="all, delete-orphan")
+    story_views = relationship("StoryView", back_populates="user", cascade="all, delete-orphan")
 
     __table_args__ = (
         CheckConstraint("role IN ('student', 'department_admin', 'super_admin', 'club_admin', 'principal')", name="chk_users_role"),

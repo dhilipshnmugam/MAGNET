@@ -16,7 +16,7 @@ from app.routers import (
     channels_router, announcements_router, events_router,
     notifications_router, search_router, upload_router, admin_router,
     leaderboard_router, analytics_router, clubs_router, club_content_router, departments_router,
-    projects_router, club_roles_router
+    projects_router, club_roles_router, stories_router
 )
 from app.websockets.handlers import router as ws_router
 from app.utils.firebase import initialize_firebase
@@ -533,6 +533,7 @@ app.include_router(club_content_router, prefix="/api/v1")
 app.include_router(club_roles_router, prefix="/api/v1")
 app.include_router(projects_router, prefix="/api/v1")
 app.include_router(departments_router, prefix="/api/v1")
+app.include_router(stories_router, prefix="/api/v1")
 app.include_router(ws_router, prefix="/api/v1")
 
 

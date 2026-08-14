@@ -51,6 +51,9 @@ import PrincipalClubsPage from './pages/principal/PrincipalClubsPage';
 import PrincipalAnnouncementsPage from './pages/principal/PrincipalAnnouncementsPage';
 import PrincipalLeaderboardPage from './pages/principal/PrincipalLeaderboardPage';
 import PrincipalReportsPage from './pages/principal/PrincipalReportsPage';
+import PrincipalUsersPage from './pages/principal/PrincipalUsersPage';
+import PrincipalPostsPage from './pages/principal/PrincipalPostsPage';
+import PrincipalEventsPage from './pages/principal/PrincipalEventsPage';
 import ProjectDetailPage from './pages/ProjectDetailPage';
 import ProjectCreatePage from './pages/ProjectCreatePage';
 
@@ -140,6 +143,26 @@ export default function App() {
                 <Route
                   path="/principal/clubs"
                   element={<ProtectedRoute roles={['principal']}><Layout><PrincipalClubsPage /></Layout></ProtectedRoute>}
+                />
+                <Route
+                  path="/principal/users"
+                  element={<ProtectedRoute roles={['principal']}><Layout><PrincipalUsersPage role="all" title="All Users" subtitle="Campus-wide user directory" /></Layout></ProtectedRoute>}
+                />
+                <Route
+                  path="/principal/students"
+                  element={<ProtectedRoute roles={['principal']}><Layout><PrincipalUsersPage role="student" title="Students" subtitle="All registered students" /></Layout></ProtectedRoute>}
+                />
+                <Route
+                  path="/principal/faculty"
+                  element={<ProtectedRoute roles={['principal']}><Layout><PrincipalUsersPage role="department_admin" title="Faculty" subtitle="Faculty and department heads" /></Layout></ProtectedRoute>}
+                />
+                <Route
+                  path="/principal/posts"
+                  element={<ProtectedRoute roles={['principal']}><Layout><PrincipalPostsPage /></Layout></ProtectedRoute>}
+                />
+                <Route
+                  path="/principal/events"
+                  element={<ProtectedRoute roles={['principal']}><Layout><PrincipalEventsPage /></Layout></ProtectedRoute>}
                 />
                 <Route
                   path="/principal/announcements"

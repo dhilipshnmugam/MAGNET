@@ -14,6 +14,7 @@ from app.models.notification import Notification, FCMToken, NotificationPreferen
 from app.models.points import Point, Leaderboard, ClubRanking, DepartmentRanking, PeriodSnapshot
 from app.models.approval import ApprovalRequest
 from app.models.activity_log import ActivityLog
+from app.models.story import Story, StoryLike, StoryComment, StoryView
 
 __all__ = [
     "User", "Student", "Hod", "UserFollow",
@@ -32,4 +33,5 @@ __all__ = [
     "Point", "Leaderboard", "ClubRanking", "DepartmentRanking", "PeriodSnapshot",
     "ApprovalRequest",
     "ActivityLog",
+    "Story", "StoryLike", "StoryComment", "StoryView",
 ]

@@ -6,7 +6,7 @@ All ranking calculations are done in a single DB roundtrip.
 """
 
 import logging
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta
 from uuid import UUID
 from sqlalchemy import select, func, text, case, and_, or_, literal_column
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,29 +24,54 @@ logger = logging.getLogger("magnet.leaderboard")
 # ──────────────────────────────────────────────
 #  Period helpers
 # ──────────────────────────────────────────────
+#
+# Points are stored with ``datetime.utcnow()`` (naive UTC) in
+# ``points.created_at``. The app operates in Asia/Kolkata (IST, UTC+05:30).
+# IST has no DST, so we use a fixed offset (no tzdata dependency required).
+# Period boundaries ("start of this week/month/year") are computed on the IST
+# wall-clock and then converted to naive UTC so the comparison against the
+# stored timestamps is correct.
 
-def _get_week_bounds(dt: date | None = None) -> tuple[datetime, datetime]:
-    d = dt or date.today()
-    start = datetime.combine(d - timedelta(days=d.weekday()), datetime.min.time())
-    end = datetime.combine(d + timedelta(days=6 - d.weekday()), datetime.max.time())
-    return start, end
-
-
-def _get_month_bounds(dt: date | None = None) -> tuple[datetime, datetime]:
-    d = dt or date.today()
-    start = datetime(d.year, d.month, 1)
-    if d.month == 12:
-        end = datetime(d.year + 1, 1, 1) - timedelta(seconds=1)
-    else:
-        end = datetime(d.year, d.month + 1, 1) - timedelta(seconds=1)
-    return start, end
+IST_OFFSET = timedelta(hours=5, minutes=30)
 
 
-def _get_year_bounds(dt: date | None = None) -> tuple[datetime, datetime]:
-    d = dt or date.today()
-    start = datetime(d.year, 1, 1)
-    end = datetime(d.year, 12, 31, 23, 59, 59)
-    return start, end
+def _ist_now() -> datetime:
+    """Current wall-clock time in Asia/Kolkata (IST) as a naive datetime."""
+    return datetime.utcnow() + IST_OFFSET
+
+
+def _period_start_local(period_type: str, now: datetime) -> datetime:
+    """Start of the current period in IST (naive datetime)."""
+    if period_type == "weekly":
+        return (now - timedelta(days=now.weekday())).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+    if period_type == "monthly":
+        return now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    if period_type == "yearly":
+        return now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+    raise ValueError(f"Invalid period: {period_type}")
+
+
+def _period_bounds(period_type: str) -> tuple[datetime, datetime]:
+    """Return ``(start, end)`` naive-UTC bounds for the current period."""
+    now_ist = _ist_now()
+    start_local = _period_start_local(period_type, now_ist)
+    start_utc = start_local - IST_OFFSET
+    end_utc = now_ist - IST_OFFSET
+    return start_utc, end_utc
+
+
+def _get_week_bounds() -> tuple[datetime, datetime]:
+    return _period_bounds("weekly")
+
+
+def _get_month_bounds() -> tuple[datetime, datetime]:
+    return _period_bounds("monthly")
+
+
+def _get_year_bounds() -> tuple[datetime, datetime]:
+    return _period_bounds("yearly")
 
 
 PERIOD_GETTERS = {
@@ -357,6 +382,7 @@ async def _period_ranking(
                 "name": row.name,
                 "icon": row.icon,
                 "points_earned": row.points_earned,
+                "total_points": row.points_earned,
                 "activity_count": row.activity_count,
             }
             for row in rows
@@ -402,6 +428,7 @@ async def _period_ranking(
                 "name": row.name,
                 "icon": row.icon,
                 "points_earned": row.points_earned,
+                "total_points": row.points_earned,
                 "activity_count": row.activity_count,
             }
             for row in rows
@@ -448,6 +475,7 @@ async def _period_ranking(
                 "name": row.name,
                 "icon": row.icon,
                 "points_earned": row.points_earned,
+                "total_points": row.points_earned,
                 "activity_count": row.activity_count,
             }
             for row in rows
@@ -526,6 +554,7 @@ async def overall_ranking(
                 "user_name": row.full_name,
                 "user_avatar": row.avatar_url,
                 "total_points": row.total_points,
+                "points_earned": row.total_points,
                 "streak_days": row.streak_days,
             }
             for row in rows
@@ -559,6 +588,7 @@ async def overall_ranking(
                 "club_name": row.name,
                 "club_icon": row.icon_url,
                 "total_points": row.total_points,
+                "points_earned": row.total_points,
                 "total_posts": row.total_posts,
                 "active_members": row.total_members_active,
             }
@@ -592,6 +622,7 @@ async def overall_ranking(
                 "department_name": row.name,
                 "department_code": row.code,
                 "total_points": row.total_points,
+                "points_earned": row.total_points,
                 "student_count": row.total_students,
                 "club_count": row.total_clubs,
                 "post_count": row.total_posts,
@@ -619,7 +650,6 @@ async def my_ranking(db: AsyncSession, user_id: UUID) -> dict:
     )
     all_time = points_result.scalar()
 
-    now = datetime.utcnow()
     week_start, _ = _get_week_bounds()
     month_start, _ = _get_month_bounds()
     year_start, _ = _get_year_bounds()

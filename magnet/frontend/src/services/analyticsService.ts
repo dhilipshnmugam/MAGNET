@@ -160,6 +160,42 @@ export interface PrincipalDepartmentDetails {
   }>;
 }
 
+export interface PrincipalUser {
+  id: string;
+  full_name: string;
+  avatar_url: string | null;
+  email: string;
+  role: string;
+  is_active: boolean;
+  department_id: string | null;
+  department_name: string | null;
+  year: string | null;
+  register_number: string | null;
+  last_seen_at: string | null;
+  created_at: string | null;
+  points: number;
+  post_count: number;
+}
+
+export interface PrincipalPost {
+  id: string;
+  content: string;
+  title: string | null;
+  post_type: string;
+  image_url: string | null;
+  like_count: number;
+  comment_count: number;
+  created_at: string | null;
+  author: {
+    id: string;
+    full_name: string;
+    avatar_url: string | null;
+    role: string;
+  };
+  club_name: string | null;
+  department_name: string | null;
+}
+
 export const analyticsService = {
   getStudentGrowth: (months?: number) =>
     api.get('/analytics/student-growth', { params: { months } }),
@@ -190,4 +226,10 @@ export const analyticsService = {
 
   getPrincipalDepartmentDetails: (department_id: string) =>
     api.get('/analytics/principal-department', { params: { department_id } }),
+
+  getPrincipalUsers: (role: string, params: { search?: string; page?: number; page_size?: number } = {}) =>
+    api.get('/analytics/principal/users', { params: { role, ...params } }),
+
+  getPrincipalPosts: (params: { search?: string; page?: number; page_size?: number } = {}) =>
+    api.get('/analytics/principal/posts', { params }),
 };

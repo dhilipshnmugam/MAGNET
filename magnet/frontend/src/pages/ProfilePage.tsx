@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { userService, uploadService, postService } from '../services';
 import Avatar from '../components/common/Avatar';
@@ -16,6 +16,7 @@ import {
   Camera, Share2, Grid3X3, Award, Users,
   Edit3, BarChart3, Plus, Clock, UserPlus, Check, MessageCircle,
   GraduationCap, MapPin, BadgeCheck, Briefcase, Building2, Code,
+  ArrowLeft,
 } from 'lucide-react';
 import type { Post } from '../types';
 import { formatMonthYear } from '../utils/helpers';
@@ -32,6 +33,8 @@ export default function ProfilePage() {
   const { user: authUser, student: authStudent, hod: authHod, refreshUser } = useAuth();
   const navigate = useNavigate();
   const { userId } = useParams<{ userId: string }>();
+  const location = useLocation();
+  const backPath = (location.state as { back?: string } | null)?.back;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
@@ -224,6 +227,16 @@ export default function ProfilePage() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 pb-20 lg:pb-6">
+      {/* Back link */}
+      {backPath && (
+        <button
+          onClick={() => navigate(backPath)}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
+        >
+          <ArrowLeft className="h-4 w-4" /> Back
+        </button>
+      )}
+
       {/* COVER */}
       <div className="card overflow-hidden animate-fade-in">
         <div className="relative h-48 bg-gradient-to-r from-[#0095f6] via-indigo-500 to-purple-600 sm:h-56 md:h-64">

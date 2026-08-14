@@ -650,3 +650,51 @@ export interface ApiResponse<T> {
   data: T;
   message: string;
 }
+
+export interface StoryCreator {
+  id: string;
+  full_name: string;
+  avatar_url: string | null;
+  role: string;
+}
+
+export interface Story {
+  id: string;
+  creator_id: string;
+  content: string | null;
+  media_url: string;
+  media_type: 'image' | 'video';
+  thumbnail_url: string | null;
+  like_count: number;
+  comment_count: number;
+  view_count: number;
+  is_liked_by_user: boolean;
+  creator: StoryCreator | null;
+  created_at: string;
+  expires_at: string;
+}
+
+export interface StoryViewer {
+  user_id: string;
+  full_name: string;
+  avatar_url: string | null;
+  role: string;
+  viewed_at: string | null;
+}
+
+export interface StoryLiker {
+  user_id: string;
+  full_name: string;
+  avatar_url: string | null;
+  role: string;
+  liked_at: string | null;
+}
+
+export interface StoryComment {
+  id: string;
+  story_id: string;
+  author_id: string;
+  content: string;
+  author: StoryCreator | null;
+  created_at: string;
+}

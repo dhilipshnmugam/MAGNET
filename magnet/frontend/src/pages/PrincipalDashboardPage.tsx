@@ -6,7 +6,7 @@ import {
 } from '../services/analyticsService';
 import { PageLoader } from '../components/common/Loader';
 import {
-  ChartCard, StatCard, SimpleBarChart, SimpleAreaChart,
+  ChartCard, SimpleBarChart, SimpleAreaChart,
   SimplePieChart, MultiBarChart,
 } from '../components/charts';
 import {
@@ -49,13 +49,11 @@ export default function PrincipalDashboardPage() {
   const ov = principal.overview;
 
   const statCards = [
-    { label: 'Total Users', value: ov.total_users, icon: <Users className="h-5 w-5" />, color: 'bg-sky-500', change: monthly?.growth?.students },
-    { label: 'Students', value: ov.total_students, icon: <GraduationCap className="h-5 w-5" />, color: 'bg-blue-500' },
-    { label: 'Faculty', value: ov.total_faculty, icon: <Users className="h-5 w-5" />, color: 'bg-indigo-500' },
-    { label: 'Posts', value: ov.total_posts, icon: <FileText className="h-5 w-5" />, color: 'bg-cyan-500', change: monthly?.growth?.posts },
-    { label: 'Events', value: ov.total_events, icon: <Calendar className="h-5 w-5" />, color: 'bg-teal-500', change: monthly?.growth?.events },
-    { label: 'Clubs', value: ov.total_clubs, icon: <Trophy className="h-5 w-5" />, color: 'bg-violet-500' },
-    { label: 'Departments', value: ov.total_departments, icon: <Building2 className="h-5 w-5" />, color: 'bg-rose-500' },
+    { label: 'Total Users', value: ov.total_users, icon: <Users className="h-5 w-5" />, color: 'bg-sky-500', change: monthly?.growth?.students, to: '/principal/users' },
+    { label: 'Students', value: ov.total_students, icon: <GraduationCap className="h-5 w-5" />, color: 'bg-blue-500', to: '/principal/students' },
+    { label: 'Faculty', value: ov.total_faculty, icon: <Users className="h-5 w-5" />, color: 'bg-indigo-500', to: '/principal/faculty' },
+    { label: 'Posts', value: ov.total_posts, icon: <FileText className="h-5 w-5" />, color: 'bg-cyan-500', change: monthly?.growth?.posts, to: '/principal/posts' },
+    { label: 'Events', value: ov.total_events, icon: <Calendar className="h-5 w-5" />, color: 'bg-teal-500', change: monthly?.growth?.events, to: '/principal/events' },
   ];
 
   const userPieData = [
@@ -107,9 +105,24 @@ export default function PrincipalDashboardPage() {
       </div>
 
       {/* Stat Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
         {statCards.map((s) => (
-          <StatCard key={s.label} label={s.label} value={s.value} icon={s.icon} color={s.color} change={s.change} />
+          <Link
+            key={s.label}
+            to={s.to}
+            className="group card p-5 transition-all hover:-translate-y-0.5 hover:shadow-md"
+          >
+            <div className="flex items-center gap-3">
+              <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${s.color} text-white`}>
+                {s.icon}
+              </div>
+              <div className="flex-1">
+                <p className="text-2xl font-bold">{typeof s.value === 'number' ? s.value.toLocaleString() : s.value}</p>
+                <p className="text-xs text-gray-500">{s.label}</p>
+              </div>
+              <ChevronRight className="h-4 w-4 text-gray-400 transition-colors group-hover:text-sky-500" />
+            </div>
+          </Link>
         ))}
       </div>
 

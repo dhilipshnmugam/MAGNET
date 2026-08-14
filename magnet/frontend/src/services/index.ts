@@ -60,6 +60,22 @@ export const uploadService = {
   },
 };
 
+export const storyService = {
+  create: (data: { media_url: string; media_type: string; content?: string; thumbnail_url?: string }) =>
+    api.post('/stories', data),
+  getActiveStories: () => api.get('/stories'),
+  getById: (id: string) => api.get(`/stories/${id}`),
+  like: (id: string) => api.post(`/stories/${id}/like`),
+  unlike: (id: string) => api.delete(`/stories/${id}/like`),
+  addComment: (id: string, data: { content: string }) => api.post(`/stories/${id}/comments`, data),
+  getComments: (id: string, params?: { page?: number; page_size?: number }) =>
+    api.get(`/stories/${id}/comments`, { params }),
+  view: (id: string) => api.post(`/stories/${id}/view`),
+  getViewers: (id: string) => api.get(`/stories/${id}/viewers`),
+  getLikers: (id: string) => api.get(`/stories/${id}/likes`),
+  delete: (id: string) => api.delete(`/stories/${id}`),
+};
+
 export const adminService = {
   dashboard: () => api.get('/admin/dashboard'),
   listUsers: (params?: any) => api.get('/admin/users', { params }),

@@ -299,3 +299,32 @@ async def get_principal_department_details(
     if data is None:
         raise HTTPException(status_code=404, detail="Department not found")
     return ResponseModel(data=data)
+
+
+@router.get("/principal/users")
+async def get_principal_users(
+    role: str = Query("all", pattern="^(all|student|department_admin|club_admin|principal|hod)$"),
+    search: Optional[str] = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_principal),
+):
+    data = await analytics_engine.principal_users_list(
+        db, role=role, search=search or "", page=page, page_size=page_size
+    )
+    return ResponseModel(data=data)
+
+
+@router.get("/principal/posts")
+async def get_principal_posts(
+    search: Optional[str] = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_principal),
+):
+    data = await analytics_engine.principal_posts_list(
+        db, search=search or "", page=page, page_size=page_size
+    )
+    return ResponseModel(data=data)

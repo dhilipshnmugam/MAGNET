@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   Building2, Users, GraduationCap, Activity, FileText, Calendar, Trophy,
   ArrowLeft, Search, Crown, Mail, Loader2, Play, Heart, MessageCircle,
@@ -200,6 +200,12 @@ function UserListSection({
   const [roleFilter, setRoleFilter] = useState(role);
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 400);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const openProfile = (id: string) => {
+    navigate(`/profile/${id}`, { state: { back: location.pathname } });
+  };
 
   const load = useCallback((p: number, reset: boolean) => {
     if (!departmentId) return;
@@ -271,7 +277,11 @@ function UserListSection({
         {members.map((m) => {
           const badge = ROLE_BADGE[m.role] || ROLE_BADGE.student;
           return (
-            <div key={m.id} className="flex items-center gap-3 px-4 py-3">
+            <div
+              key={m.id}
+              onClick={() => openProfile(m.id)}
+              className="flex cursor-pointer items-center gap-3 px-4 py-3 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50"
+            >
               <Avatar src={m.avatar_url} name={m.full_name} size="sm" />
               <div className="min-w-0 flex-1">
                 <p className="truncate font-medium">{m.full_name}</p>
@@ -439,13 +449,24 @@ function ClubsSection({ departmentId }: { departmentId: string }) {
 /* ---------- Top students ---------- */
 
 function TopStudentsSection({ students }: { students: PrincipalDepartmentDetails['top_students'] }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const openProfile = (id: string) => {
+    navigate(`/profile/${id}`, { state: { back: location.pathname } });
+  };
+
   if (students.length === 0) {
     return <p className="py-8 text-center text-sm text-gray-400">No students with points yet</p>;
   }
   return (
     <div className="divide-y divide-gray-100 dark:divide-gray-800">
       {students.map((s) => (
-        <div key={s.user_id} className="flex items-center gap-3 py-3">
+        <div
+          key={s.user_id}
+          onClick={() => openProfile(s.user_id)}
+          className="flex cursor-pointer items-center gap-3 py-3 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50"
+        >
           <span className={cn(
             'w-6 text-center text-sm font-bold',
             s.rank === 1 ? 'text-yellow-500' : s.rank === 2 ? 'text-gray-400' : s.rank === 3 ? 'text-amber-700' : 'text-gray-400'

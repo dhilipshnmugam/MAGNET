@@ -16,6 +16,7 @@ from app.routers.club_content import router as club_content_router
 from app.routers.club_roles import router as club_roles_router
 from app.routers.projects import router as projects_router
 from app.routers.departments import router as departments_router
+from app.routers.stories import router as stories_router
 
 __all__ = [
     "auth_router",
@@ -36,4 +37,5 @@ __all__ = [
     "club_roles_router",
     "projects_router",
     "departments_router",
+    "stories_router",
 ]
